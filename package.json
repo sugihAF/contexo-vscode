@@ -1,0 +1,485 @@
+{
+  "name": "contexo",
+  "publisher": "contexo",
+  "displayName": "Contexo",
+  "description": "Source Control and knowledge tree for Contexo knowledge bases, driven by the ctx CLI.",
+  "version": "0.0.1",
+  "preview": true,
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sugihAF/contexo-vscode.git"
+  },
+  "engines": {
+    "vscode": "^1.100.0",
+    "node": ">=22"
+  },
+  "main": "./dist/extension.js",
+  "icon": "media/icon.png",
+  "extensionKind": [
+    "workspace"
+  ],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": false
+    },
+    "virtualWorkspaces": {
+      "supported": false,
+      "description": "Contexo runs the local ctx CLI against files on disk, which virtual workspaces do not provide."
+    }
+  },
+  "activationEvents": [
+    "workspaceContains:.contexo/config.json",
+    "onFileSystem:contexo"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "contexo.refresh",
+        "title": "Refresh",
+        "category": "Contexo",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "contexo.showLog",
+        "title": "Show Log",
+        "category": "Contexo",
+        "icon": "$(output)"
+      },
+      {
+        "command": "contexo.openInDashboard",
+        "title": "Open in Dashboard",
+        "category": "Contexo",
+        "icon": "$(link-external)"
+      },
+      {
+        "command": "contexo.login",
+        "title": "Log In",
+        "category": "Contexo",
+        "icon": "$(sign-in)"
+      },
+      {
+        "command": "contexo.init",
+        "title": "Initialize Contexo",
+        "category": "Contexo"
+      },
+      {
+        "command": "contexo.installCtx",
+        "title": "Install ctx",
+        "category": "Contexo"
+      },
+      {
+        "command": "contexo.updateCtx",
+        "title": "Update ctx",
+        "category": "Contexo"
+      },
+      {
+        "command": "contexo.shareViaAgent",
+        "title": "Share via Your Agent",
+        "category": "Contexo",
+        "icon": "$(comment-discussion)"
+      },
+      {
+        "command": "contexo.openChange",
+        "title": "Open Changes",
+        "category": "Contexo",
+        "icon": "$(diff)"
+      },
+      {
+        "command": "contexo.openFile",
+        "title": "Open File",
+        "category": "Contexo",
+        "icon": "$(go-to-file)"
+      },
+      {
+        "command": "contexo.openServerVersion",
+        "title": "Open Server Version",
+        "category": "Contexo",
+        "icon": "$(cloud)"
+      },
+      {
+        "command": "contexo.openAllChanges",
+        "title": "Open All Changes",
+        "category": "Contexo",
+        "icon": "$(diff-multiple)"
+      },
+      {
+        "command": "contexo.push",
+        "title": "Push",
+        "category": "Contexo",
+        "icon": "$(cloud-upload)"
+      },
+      {
+        "command": "contexo.pushSelected",
+        "title": "Push Selected",
+        "category": "Contexo",
+        "icon": "$(cloud-upload)"
+      },
+      {
+        "command": "contexo.pull",
+        "title": "Pull",
+        "category": "Contexo",
+        "icon": "$(cloud-download)"
+      },
+      {
+        "command": "contexo.resolveOurs",
+        "title": "Keep Mine",
+        "category": "Contexo",
+        "icon": "$(person)"
+      },
+      {
+        "command": "contexo.resolveTheirs",
+        "title": "Take Server Version",
+        "category": "Contexo",
+        "icon": "$(cloud-download)"
+      },
+      {
+        "command": "contexo.restoreServerVersion",
+        "title": "Restore Server Version",
+        "category": "Contexo",
+        "icon": "$(discard)"
+      }
+    ],
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "contexo.openChange",
+          "when": "false"
+        },
+        {
+          "command": "contexo.openFile",
+          "when": "false"
+        },
+        {
+          "command": "contexo.openServerVersion",
+          "when": "false"
+        },
+        {
+          "command": "contexo.openAllChanges",
+          "when": "false"
+        },
+        {
+          "command": "contexo.pushSelected",
+          "when": "false"
+        },
+        {
+          "command": "contexo.resolveOurs",
+          "when": "false"
+        },
+        {
+          "command": "contexo.resolveTheirs",
+          "when": "false"
+        },
+        {
+          "command": "contexo.restoreServerVersion",
+          "when": "false"
+        }
+      ],
+      "scm/title": [
+        {
+          "command": "contexo.push",
+          "group": "navigation@1",
+          "when": "scmProvider == contexo"
+        },
+        {
+          "command": "contexo.pull",
+          "group": "navigation@2",
+          "when": "scmProvider == contexo"
+        },
+        {
+          "command": "contexo.refresh",
+          "group": "navigation@3",
+          "when": "scmProvider == contexo"
+        },
+        {
+          "command": "contexo.openInDashboard",
+          "group": "1_contexo@1",
+          "when": "scmProvider == contexo"
+        },
+        {
+          "command": "contexo.showLog",
+          "group": "1_contexo@2",
+          "when": "scmProvider == contexo"
+        },
+        {
+          "command": "contexo.login",
+          "group": "1_contexo@3",
+          "when": "scmProvider == contexo"
+        }
+      ],
+      "scm/resourceGroup/context": [
+        {
+          "command": "contexo.openAllChanges",
+          "group": "inline",
+          "when": "scmProvider == contexo && scmResourceGroup =~ /^(conflicts|changes|new|incoming)$/"
+        }
+      ],
+      "scm/resourceState/context": [
+        {
+          "command": "contexo.openFile",
+          "group": "inline@1",
+          "when": "scmProvider == contexo"
+        },
+        {
+          "command": "contexo.resolveTheirs",
+          "group": "inline@2",
+          "when": "scmProvider == contexo && scmResourceState == conflict"
+        },
+        {
+          "command": "contexo.resolveOurs",
+          "group": "inline@3",
+          "when": "scmProvider == contexo && scmResourceState == conflict"
+        },
+        {
+          "command": "contexo.openChange",
+          "group": "1_open@1",
+          "when": "scmProvider == contexo"
+        },
+        {
+          "command": "contexo.openFile",
+          "group": "1_open@2",
+          "when": "scmProvider == contexo"
+        },
+        {
+          "command": "contexo.openServerVersion",
+          "group": "1_open@3",
+          "when": "scmProvider == contexo && scmResourceState =~ /^(incoming|incoming_new|conflict)$/"
+        },
+        {
+          "command": "contexo.pushSelected",
+          "group": "2_sync@1",
+          "when": "scmProvider == contexo && scmResourceState =~ /^(modified|new)$/"
+        },
+        {
+          "command": "contexo.resolveTheirs",
+          "group": "3_resolve@1",
+          "when": "scmProvider == contexo && scmResourceState == conflict"
+        },
+        {
+          "command": "contexo.resolveOurs",
+          "group": "3_resolve@2",
+          "when": "scmProvider == contexo && scmResourceState == conflict"
+        },
+        {
+          "command": "contexo.restoreServerVersion",
+          "group": "3_resolve@3",
+          "when": "scmProvider == contexo && scmResourceState == deleted_local"
+        },
+        {
+          "command": "contexo.openInDashboard",
+          "group": "4_dashboard@1",
+          "when": "scmProvider == contexo"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "contexo.refresh",
+          "group": "navigation@3",
+          "when": "view == contexo.knowledge"
+        },
+        {
+          "command": "contexo.push",
+          "group": "navigation@1",
+          "when": "view == contexo.knowledge"
+        },
+        {
+          "command": "contexo.pull",
+          "group": "navigation@2",
+          "when": "view == contexo.knowledge"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "contexo.openFile",
+          "group": "inline@1",
+          "when": "view == contexo.knowledge && viewItem =~ /^page\\./"
+        },
+        {
+          "command": "contexo.openInDashboard",
+          "group": "1_open@1",
+          "when": "view == contexo.knowledge && viewItem =~ /^page\\./"
+        },
+        {
+          "command": "contexo.shareViaAgent",
+          "group": "inline@1",
+          "when": "view == contexo.knowledge && viewItem == session"
+        }
+      ]
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "contexo",
+          "title": "Contexo",
+          "icon": "media/contexo-activity.svg"
+        }
+      ]
+    },
+    "views": {
+      "contexo": [
+        {
+          "id": "contexo.knowledge",
+          "name": "Knowledge"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "contexo.knowledge",
+        "when": "!contexo.state || contexo.state == loading",
+        "contents": "Loading Contexo…"
+      },
+      {
+        "view": "contexo.knowledge",
+        "when": "contexo.state == ctxMissing",
+        "contents": "The Contexo CLI (ctx) was not found on this machine.\n[Install ctx](command:contexo.installCtx)\n[Locate ctx…](command:workbench.action.openSettings?%5B%22contexo.path%22%5D)\n[Show Log](command:contexo.showLog)"
+      },
+      {
+        "view": "contexo.knowledge",
+        "when": "contexo.state == ctxTooOld",
+        "contents": "Your ctx is too old for this extension.\n[Update ctx](command:contexo.updateCtx)\n[Show Log](command:contexo.showLog)"
+      },
+      {
+        "view": "contexo.knowledge",
+        "when": "contexo.state == extensionTooOld",
+        "contents": "This ctx needs a newer version of the Contexo extension. Update the extension from the Extensions view.\n[Show Log](command:contexo.showLog)"
+      },
+      {
+        "view": "contexo.knowledge",
+        "when": "contexo.state == noRepositories",
+        "contents": "No Contexo project in this workspace.\n[Initialize Contexo](command:contexo.init)\n[Read the docs](https://docs.contexo.live)"
+      },
+      {
+        "view": "contexo.knowledge",
+        "when": "contexo.state == notLoggedIn",
+        "contents": "You are not logged in to Contexo.\n[Log In](command:contexo.login)\nIn a remote window, run `ctx auth login --no-browser` in a terminal instead."
+      }
+    ],
+    "configuration": {
+      "title": "Contexo",
+      "properties": {
+        "contexo.path": {
+          "type": "string",
+          "default": "",
+          "scope": "machine",
+          "pattern": "^$|^/|^[A-Za-z]:[\\\\/]|^\\\\\\\\",
+          "patternErrorMessage": "Use an absolute path to the ctx binary (on Windows, ctx.exe).",
+          "markdownDescription": "Absolute path to the `ctx` binary. Leave empty to search `PATH` and the standard install locations. Relative paths are ignored. On Windows point it at `ctx.exe`, not a `.cmd` shim."
+        },
+        "contexo.remoteRefresh.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Check the Contexo server for incoming changes while the window is focused."
+        },
+        "contexo.remoteRefresh.intervalSeconds": {
+          "type": "number",
+          "default": 180,
+          "minimum": 60,
+          "description": "Seconds between server checks while the window is focused (minimum 60)."
+        },
+        "contexo.scm.countIncoming": {
+          "type": "boolean",
+          "default": false,
+          "description": "Include incoming pages in the Source Control badge count."
+        },
+        "contexo.decorations.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show Contexo page state decorations in the Explorer, Source Control and Knowledge views."
+        },
+        "contexo.tree.showSessions": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show the pending agent-session item in the Knowledge view."
+        }
+      }
+    },
+    "colors": [
+      {
+        "id": "contexo.modifiedForeground",
+        "description": "Color for modified Contexo pages.",
+        "defaults": {
+          "dark": "gitDecoration.modifiedResourceForeground",
+          "light": "gitDecoration.modifiedResourceForeground",
+          "highContrast": "gitDecoration.modifiedResourceForeground",
+          "highContrastLight": "gitDecoration.modifiedResourceForeground"
+        }
+      },
+      {
+        "id": "contexo.addedForeground",
+        "description": "Color for new Contexo pages.",
+        "defaults": {
+          "dark": "gitDecoration.addedResourceForeground",
+          "light": "gitDecoration.addedResourceForeground",
+          "highContrast": "gitDecoration.addedResourceForeground",
+          "highContrastLight": "gitDecoration.addedResourceForeground"
+        }
+      },
+      {
+        "id": "contexo.incomingForeground",
+        "description": "Color for Contexo pages changed on the server.",
+        "defaults": {
+          "dark": "gitDecoration.submoduleResourceForeground",
+          "light": "gitDecoration.submoduleResourceForeground",
+          "highContrast": "gitDecoration.submoduleResourceForeground",
+          "highContrastLight": "gitDecoration.submoduleResourceForeground"
+        }
+      },
+      {
+        "id": "contexo.conflictForeground",
+        "description": "Color for conflicting Contexo pages.",
+        "defaults": {
+          "dark": "gitDecoration.conflictingResourceForeground",
+          "light": "gitDecoration.conflictingResourceForeground",
+          "highContrast": "gitDecoration.conflictingResourceForeground",
+          "highContrastLight": "gitDecoration.conflictingResourceForeground"
+        }
+      },
+      {
+        "id": "contexo.invalidForeground",
+        "description": "Color for Contexo pages that ctx cannot parse.",
+        "defaults": {
+          "dark": "list.errorForeground",
+          "light": "list.errorForeground",
+          "highContrast": "list.errorForeground",
+          "highContrastLight": "list.errorForeground"
+        }
+      }
+    ]
+  },
+  "scripts": {
+    "compile": "node esbuild.mjs",
+    "watch": "node esbuild.mjs --watch",
+    "vscode:prepublish": "node esbuild.mjs --production",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.test.json --noEmit",
+    "lint": "eslint .",
+    "compile-tests": "tsc -p tsconfig.test.json",
+    "test:unit": "npm run compile-tests && mocha --ui bdd --timeout 20000 \"out/test/unit/**/*.test.js\"",
+    "pretest": "npm run compile && npm run compile-tests && node scripts/prepare-test-workspaces.mjs",
+    "test": "vscode-test --label integration --label integration-stable --label integration-multi",
+    "test:e2e": "npm run pretest && vscode-test --label e2e",
+    "test:real-ctx": "npm run pretest && vscode-test --label real-ctx",
+    "check:manifest": "node scripts/check-manifest.mjs",
+    "contract:validate": "node contract/validate.mjs",
+    "package": "vsce package --no-dependencies --out dist/"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@types/mocha": "10.0.10",
+    "@types/node": "20.19.43",
+    "@types/sinon": "22.0.0",
+    "@types/vscode": "1.100.0",
+    "@vscode/test-cli": "0.0.15",
+    "@vscode/test-electron": "3.1.0",
+    "@vscode/vsce": "4.0.0",
+    "ajv": "8.20.0",
+    "esbuild": "0.28.2",
+    "eslint": "10.13.0",
+    "mocha": "11.8.0",
+    "ovsx": "1.3.0",
+    "sinon": "22.1.0",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.72.0",
+    "vscode-uri": "3.2.0"
+  }
+}

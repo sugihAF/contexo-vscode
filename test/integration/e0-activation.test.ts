@@ -101,6 +101,25 @@ describe("e0 activation", () => {
     assert.equal(services.prompts, originalPrompts, "resetServices restores the original prompts");
   });
 
+  it("a model whose initialize() throws synchronously (or returns no promise) cannot break the seam", async () => {
+    api = await waitForActivation();
+    const services = api.services;
+    const originalModel = services.model;
+    const throwing = fakeModel();
+    (throwing as { initialize: () => Promise<void> }).initialize = () => { throw new Error("initialize bug"); };
+    const nonPromise = fakeModel();
+    (nonPromise as unknown as { initialize: () => void }).initialize = () => undefined;
+
+    await api.hooks.overrideServices({ model: throwing });
+    assert.equal(services.model, throwing);
+    await assertCommandsRegisteredOnce();
+    await api.hooks.overrideServices({ model: nonPromise });
+    await assertCommandsRegisteredOnce();
+    await api.hooks.resetServices();
+    assert.equal(services.model, originalModel);
+    await assertCommandsRegisteredOnce();
+  });
+
   it("override twice then reset never throws and commands stay registered once", async () => {
     api = await waitForActivation();
     const services = api.services;

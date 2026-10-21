@@ -127,12 +127,8 @@ export interface TestApi {
  */
 export const testHooks: Partial<SnapshotHooks> = {};
 
-/** The seam implementation extension.ts hands to createTestApi. */
-export interface ServiceSeam {
-  overrideServices(o: { cli?: ICtxCli; model?: IModel }): Promise<void>;
-  resetServices(): Promise<void>;
-  setPrompts(p: Prompts): void;
-}
+/** The seam implementation extension.ts hands to createTestApi (the TestHooks methods). */
+export type ServiceSeam = Pick<TestHooks, "overrideServices" | "resetServices" | "setPrompts">;
 
 /** Builds the TestApi; snapshot hooks are live getters over testHooks. */
 export function createTestApi(services: Services, seam: ServiceSeam): TestApi {

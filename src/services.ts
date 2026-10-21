@@ -30,7 +30,7 @@ export interface ContexoConfig {
   readonly path: string | undefined;
   /** contexo.remoteRefresh.enabled (default true). */
   readonly remoteRefreshEnabled: boolean;
-  /** contexo.remoteRefresh.intervalSeconds (default 180), never below 60. */
+  /** contexo.remoteRefresh.intervalSeconds (default 180), clamped to [60, 86400] (clampRefreshInterval). */
   readonly remoteRefreshIntervalSeconds: number;
   /** contexo.scm.countIncoming (default false, E29). */
   readonly scmCountIncoming: boolean;
@@ -44,6 +44,14 @@ export interface ContexoConfig {
 
 export const MIN_REMOTE_REFRESH_SECONDS = 60;
 export const DEFAULT_REMOTE_REFRESH_SECONDS = 180;
+/** One day: keeps seconds × 1000 far below setTimeout's 2^31-1 ms limit (larger values fire after 1 ms). */
+export const MAX_REMOTE_REFRESH_SECONDS = 86_400;
+
+/** contexo.remoteRefresh.intervalSeconds as used: default for a missing or non-numeric value, clamped to [60, 86400]. */
+export function clampRefreshInterval(value: unknown): number {
+  if (typeof value !== "number" || Number.isNaN(value)) { return DEFAULT_REMOTE_REFRESH_SECONDS; }
+  return Math.min(MAX_REMOTE_REFRESH_SECONDS, Math.max(MIN_REMOTE_REFRESH_SECONDS, value));
+}
 
 /** ContexoConfig over vscode.workspace.getConfiguration('contexo'). */
 export function createConfig(): ContexoConfig & vscode.Disposable {
@@ -58,10 +66,7 @@ export function createConfig(): ContexoConfig & vscode.Disposable {
       return typeof v === "string" && v.trim() !== "" ? v.trim() : undefined;
     },
     get remoteRefreshEnabled() { return get<boolean>("remoteRefresh.enabled", true) !== false; },
-    get remoteRefreshIntervalSeconds() {
-      const v = Number(get<number>("remoteRefresh.intervalSeconds", DEFAULT_REMOTE_REFRESH_SECONDS));
-      return Number.isFinite(v) ? Math.max(MIN_REMOTE_REFRESH_SECONDS, v) : DEFAULT_REMOTE_REFRESH_SECONDS;
-    },
+    get remoteRefreshIntervalSeconds() { return clampRefreshInterval(get<unknown>("remoteRefresh.intervalSeconds", DEFAULT_REMOTE_REFRESH_SECONDS)); },
     get scmCountIncoming() { return get<boolean>("scm.countIncoming", false) === true; },
     get decorationsEnabled() { return get<boolean>("decorations.enabled", true) !== false; },
     get treeShowSessions() { return get<boolean>("tree.showSessions", true) !== false; },

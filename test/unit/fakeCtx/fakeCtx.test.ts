@@ -891,3 +891,39 @@ describe("code-review regressions (WP-0.6 /code-review high)", () => {
     assert.equal(reported.length, 1, "the listener error is reported once");
   });
 });
+
+describe("code-review round 2 regressions", () => {
+  const load = createRequire(__filename);
+
+  it("offline scenarios (mixed-offline, network-error) answer show --at server/<sha> and resolve with the network envelope (exit 7, retryable), base shows still work", async () => {
+    for (const scenario of ["mixed-offline", "network-error"]) {
+      const root = rootWith(scenario);
+      for (const argv of [
+        ["show", "wiki/concepts/retry-policy.md", "--at", "server", "--root", root],
+        ["show", "wiki/concepts/retry-policy.md", "--at", "94b52c8f00000000000000000000000000000000", "--root", root],
+        ["resolve", "wiki/concepts/rate-limits.md", "--theirs", "--json", "--root", root],
+      ]) {
+        const r = await runFake(argv);
+        assert.equal(r.code, 7, `${scenario} ${argv.join(" ")}`);
+        const env = envelopeOf(r.stderr, 7);
+        assert.equal(env.error.code, "network");
+        assert.equal(env.error.retryable, true);
+      }
+      const base = await runFake(["show", "wiki/concepts/auth-flow.md", "--at", "base", "--root", root]);
+      assert.equal(base.code, 0, `${scenario}: show --at base is offline`);
+      assert.deepEqual(base.stdout, scenarioFile("mixed", "show/auth-flow.base.md"));
+    }
+  });
+
+  it("clampRefreshInterval: default 180 for missing/non-numeric, never below 60, never above 86400 (setTimeout overflow)", () => {
+    const { clampRefreshInterval } = load("../../../src/services") as typeof import("../../../src/services");
+    assert.equal(clampRefreshInterval(undefined), 180);
+    assert.equal(clampRefreshInterval(null), 180);
+    assert.equal(clampRefreshInterval("abc"), 180);
+    assert.equal(clampRefreshInterval(Number.NaN), 180);
+    assert.equal(clampRefreshInterval(5), 60);
+    assert.equal(clampRefreshInterval(240), 240);
+    assert.equal(clampRefreshInterval(1e7), 86400);
+    assert.equal(clampRefreshInterval(Number.POSITIVE_INFINITY), 86400);
+  });
+});

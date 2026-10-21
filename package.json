@@ -375,7 +375,8 @@
           "type": "number",
           "default": 180,
           "minimum": 60,
-          "description": "Seconds between server checks while the window is focused (minimum 60)."
+          "description": "Seconds between server checks while the window is focused (60 to 86400).",
+          "maximum": 86400
         },
         "contexo.scm.countIncoming": {
           "type": "boolean",

@@ -35,11 +35,16 @@ export function wire(s: Services): vscode.Disposable {
     vscode.Disposable.from(...subs).dispose();
     throw err;
   }
-  if (!initialized.has(s.model)) {
-    initialized.add(s.model);
-    void s.model.initialize().catch((err: unknown) => {
-      s.log.error(`model initialize failed: ${err instanceof Error ? err.stack ?? err.message : String(err)}`);
-    });
+  const model = s.model;
+  if (!initialized.has(model)) {
+    initialized.add(model);
+    // Deferred into a promise chain: a synchronous throw or a non-promise return from
+    // initialize() can never escape wire() and strand the registrations above.
+    void Promise.resolve()
+      .then(() => model.initialize())
+      .catch((err: unknown) => {
+        s.log.error(`model initialize failed: ${err instanceof Error ? err.stack ?? err.message : String(err)}`);
+      });
   }
   return vscode.Disposable.from(...subs);
 }
@@ -72,7 +77,7 @@ export function activate(context: vscode.ExtensionContext): TestApi | undefined 
 
   const originals = { cli, model, prompts };
   let seamModel: IModel | undefined; // a model the seam built itself; disposed once replaced
-  let wiring: vscode.Disposable | undefined = wire(services);
+  let wiring: vscode.Disposable | undefined;
 
   const swap = (nextCli: ICtxCli, nextModel: IModel, builtBySeam: boolean): void => {
     wiring?.dispose();
@@ -80,7 +85,7 @@ export function activate(context: vscode.ExtensionContext): TestApi | undefined 
     const previous = seamModel;
     services.cli = nextCli;
     services.model = nextModel;
-    seamModel = builtBySeam || nextModel === previous ? nextModel : undefined;
+    seamModel = (builtBySeam || nextModel === previous) ? nextModel : undefined;
     if (previous && previous !== nextModel) { previous.dispose(); }
     wiring = wire(services);
   };
@@ -93,7 +98,9 @@ export function activate(context: vscode.ExtensionContext): TestApi | undefined 
     originals.model.dispose();
     originals.cli.dispose();
   });
+  // Registered before the first wire(), so a throwing register* call cannot leak them.
   context.subscriptions.push(active, config, log);
+  wiring = wire(services);
 
   if (context.extensionMode !== vscode.ExtensionMode.Test) {
     return undefined;

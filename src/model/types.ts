@@ -50,7 +50,9 @@ export interface IRepository {
    * - After a push, pull or resolve settles (success or failure) the repository runs
    *   an online refresh (refresh({remote: true})) itself. Callers never refresh after run().
    * - status, statusOffline and show are not queued and do not change `operation`.
-   * The promise settles with fn's result or rejection.
+   * The promise settles with fn's result or rejection, and for push, pull and resolve only
+   * AFTER that follow-up refresh has completed, so a caller that awaits run() reads the
+   * post-operation status.
    */
   run<T>(kind: OperationKind, fn: () => Promise<T>): Promise<T>;
   /** The status entry for a working-file Uri under contexoDir (case-insensitive file systems handled here). */

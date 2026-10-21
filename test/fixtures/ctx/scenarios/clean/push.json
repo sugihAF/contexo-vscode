@@ -1,0 +1,15 @@
+{
+  "schema": "ctx.push.v1",
+  "dry_run": false,
+  "message": "ctx push (0 pages)",
+  "server_url": "http://127.0.0.1:9",
+  "repo_id": "fixture-repo",
+  "pushed": [],
+  "conflicts": [],
+  "skipped": [],
+  "distill": {
+    "required": false,
+    "bypassed": false
+  },
+  "warnings": []
+}

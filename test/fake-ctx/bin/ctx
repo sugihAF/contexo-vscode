@@ -1,0 +1,7 @@
+#!/bin/sh
+# POSIX shim for the fake ctx: lets contexo.path (or PATH) point at an executable named
+# `ctx` that runs ../fake-ctx.mjs with the same arguments. FAKE_CTX_NODE overrides the
+# node binary (default: node on PATH). Test mode normally bypasses this shim and spawns
+# node + fake-ctx.mjs directly through CONTEXO_TEST_CTX.
+here=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+exec "${FAKE_CTX_NODE:-node}" "$here/../fake-ctx.mjs" "$@"

@@ -1,0 +1,2 @@
+2026/10/15 09:30:12 sync: .sync/lock is held by mcp ctx_push (pid 4242 on fixture-host); gave up after 10s
+{"schema":"ctx.error.v1","exit_code":12,"error":{"code":"busy","message":"another ctx process is syncing this project (mcp ctx_push, pid 4242 on fixture-host); try again in a moment","advice":[],"retryable":true,"details":{"pid":4242,"host":"fixture-host","command":"mcp ctx_push","started_at":"2026-10-15T09:29:52Z"}}}

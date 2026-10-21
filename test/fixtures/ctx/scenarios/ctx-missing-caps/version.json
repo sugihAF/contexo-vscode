@@ -1,0 +1,21 @@
+{
+  "schema": "ctx.version.v1",
+  "contract_version": 1,
+  "version": "0.6.9",
+  "commit": "ad9788ac34a47e0f8068b194dc57cb4d0511835d",
+  "date": "2026-10-08T12:00:00Z",
+  "dev_build": false,
+  "os": "darwin",
+  "arch": "arm64",
+  "capabilities": [
+    "status.json",
+    "status.offline",
+    "show.base",
+    "show.server",
+    "show.sha",
+    "pull.json",
+    "push.json",
+    "push.paths",
+    "errors.envelope"
+  ]
+}

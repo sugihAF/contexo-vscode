@@ -1,0 +1,7 @@
+{
+  "rules": [
+    {"match":["version","--json"],"stdoutFile":"version.json"},
+    {"match":["status","--json"],"unless":["--offline"],"stdoutFile":"../mixed/status.json"},
+    {"match":["status","--offline"],"stdoutFile":"../mixed-offline/status.json"}
+  ]
+}

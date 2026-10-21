@@ -778,3 +778,22 @@ describe("unit-test vscode stub (test/helpers/vscodeStub.ts)", () => {
     assert.doesNotMatch(fs.readFileSync(load.resolve("../../../src/contract/types"), "utf8"), /require\(/, "contract/types imports nothing");
   });
 });
+
+describe("FakeRepository (test/helpers/fakeRepository.ts, loaded over the vscode stub)", () => {
+  const load = createRequire(__filename);
+
+  it("refresh() records a CtxError from onRefresh in lastError and clears it on the next successful refresh (IRepository.lastError contract)", async () => {
+    const { fakeRepository } = load("../../helpers/fakeRepository") as typeof import("../../helpers/fakeRepository");
+    const repo = fakeRepository({ root: "/work/alpha" });
+    let fail = true;
+    repo.onRefresh = () => { if (fail) { throw CtxError.fromProcess("", 7); } };
+
+    await repo.refresh({ remote: true });
+    assert.equal(repo.lastError?.code, "network");
+
+    fail = false;
+    await repo.refresh();
+    assert.equal(repo.lastError, undefined, "the next success clears lastError");
+    assert.deepEqual(repo.refreshCalls, [{ remote: true }, { remote: false }]);
+  });
+});

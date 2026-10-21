@@ -37,6 +37,12 @@ function recordingPrompts(): Prompts & { calls: string[] } {
 describe("e0 activation", () => {
   let api: TestApi | undefined;
 
+  beforeEach(async () => {
+    // A wave-1 test that ran first may have left an override in place; the "original"
+    // services captured below must be the real ones. exports does not activate.
+    await contexoExtension().exports?.hooks.resetServices();
+  });
+
   afterEach(async () => {
     await api?.hooks.resetServices();
   });

@@ -1,5 +1,5 @@
 // FakeRepository: a scriptable IRepository for VS Code host tests (imports vscode at
-// runtime: integration only, never from test/unit). Feed it to fakeModel() and drive a
+// runtime: host tests, or unit tests over test/helpers/vscodeStub). Feed it to fakeModel() and drive a
 // module through TestApi.hooks.overrideServices({model}).
 //
 // It mirrors the IRepository contract (src/model/types.ts):
@@ -9,7 +9,8 @@
 //   unqueued and leave `operation` alone. The promise settles with fn's result or rejection
 //   (after that refresh).
 // - refresh(o) only logs (remote defaults to false) and runs the optional onRefresh hook;
-//   it never throws: a CtxError from the hook lands in lastError.
+//   it never throws: a CtxError from the hook lands in lastError, and the next refresh
+//   whose hook succeeds clears it (lastError is 'cleared by the next success').
 import * as vscode from "vscode";
 import { CtxError } from "../../src/cli/types";
 import type { PageEntry, StatusDoc } from "../../src/contract/types";
@@ -87,6 +88,7 @@ export class FakeRepository implements IRepository, vscode.Disposable {
     this.refreshCalls.push(call);
     try {
       await this.onRefresh?.(call);
+      if (this.onRefresh) { this.lastError = undefined; } // a hook run counts as a successful ctx status
     } catch (err) {
       if (err instanceof CtxError) { this.lastError = err; return; }
       throw err;

@@ -41,21 +41,32 @@ class Disposable {
 /** Listener errors swallowed by EventEmitter.fire, waiting to fail the current test. */
 const listenerErrors: unknown[] = [];
 
-/** Returns and clears the listener errors recorded since the last call (for tests that expect one). */
+/** Returns and clears the listener errors recorded since the last call (a test that expects one takes it). */
 export function takeListenerErrors(): unknown[] {
   return listenerErrors.splice(0, listenerErrors.length);
 }
 
+function listenerFailure(errors: unknown[]): Error {
+  return errors.length === 1 && errors[0] instanceof Error
+    ? errors[0]
+    : new AggregateError(errors, `${errors.length} vscode stub event listener(s) threw`);
+}
+
 /**
- * Mocha root-hook plugin (loaded through `mocha --require`): a listener that threw inside
- * fire() fails the test that caused it, so assertions inside event listeners still count.
+ * Mocha root-hook plugin (loaded through `mocha --require`). fire() never throws (VS Code's
+ * Emitter does not), so untaken listener errors fail the current test from a root afterEach
+ * through `this.test.error(err)`: mocha then fails that test and keeps running the others.
+ * (Throwing from a root hook, or from a microtask after the test passed, makes mocha abort
+ * the whole run.) Errors raised outside any test fail the run at the end (afterAll).
  */
 export const mochaHooks = {
-  afterEach(): void {
+  afterEach(this: { test?: { error(err: unknown): void } }): void {
     const errors = takeListenerErrors();
-    if (errors.length > 0) {
-      throw new Error(`${errors.length} vscode stub event listener(s) threw: ${errors.map((e) => (e instanceof Error ? e.stack ?? e.message : String(e))).join("\n")}`);
-    }
+    if (errors.length > 0) { this.test?.error(listenerFailure(errors)); }
+  },
+  afterAll(): void {
+    const errors = takeListenerErrors();
+    if (errors.length > 0) { throw listenerFailure(errors); }
   },
 };
 
@@ -75,8 +86,8 @@ class EventEmitter<T> {
   /**
    * Delivers to every listener. Like VS Code's Emitter, fire() never throws: a throwing
    * listener is reported (console.error) and the others still run. The error is also
-   * recorded, and the mochaHooks root afterEach fails the test unless it calls
-   * takeListenerErrors().
+   * recorded, and mochaHooks fails the current test with it unless the test calls
+   * takeListenerErrors() first.
    */
   fire(data: T): void {
     for (const l of [...this.#listeners]) {

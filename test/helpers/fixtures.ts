@@ -35,10 +35,22 @@ export const SCENARIOS_DIR = path.join(REPO_ROOT, "test", "fixtures", "ctx", "sc
 export const WORKSPACES_DIR = path.join(REPO_ROOT, "test", "fixtures", "workspaces");
 export const FAKE_CTX = path.join(REPO_ROOT, "test", "fake-ctx", "fake-ctx.mjs");
 
-/** The fake ctx's built-in handshake document (test/fake-ctx/builtin-version.json): contract 1, 11 v1 capabilities + 'repair'. */
-export const BUILTIN_VERSION_DOC: VersionDoc = JSON.parse(
+/**
+ * The fake ctx's built-in handshake document (test/fake-ctx/builtin-version.json): contract 1,
+ * 11 v1 capabilities + 'repair'. Deep-frozen so no test can corrupt it; FakeCtxCli hands out
+ * its own copy (FAKE_VERSION_DOC).
+ */
+export const BUILTIN_VERSION_DOC: Readonly<VersionDoc> = deepFreeze(JSON.parse(
   fs.readFileSync(path.join(REPO_ROOT, "test", "fake-ctx", "builtin-version.json"), "utf8"),
-) as VersionDoc;
+) as VersionDoc);
+
+function deepFreeze<T>(v: T): T {
+  if (typeof v === "object" && v !== null) {
+    for (const child of Object.values(v)) { deepFreeze(child); }
+    Object.freeze(v);
+  }
+  return v;
+}
 
 /** One scenario.json rule. Files are relative to the scenario's directory ('..' allowed). */
 export interface ScenarioOutput {

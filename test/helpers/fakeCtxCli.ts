@@ -34,7 +34,7 @@ import { BUILTIN_VERSION_DOC, loadStatusDoc } from "./fixtures";
  * The handshake document of a current ctx: contract 1, the 11 v1 capabilities followed by
  * 'repair' (E19). The fake ctx's built-in `version --json` answer is byte-for-byte this doc.
  */
-export const FAKE_VERSION_DOC: VersionDoc = BUILTIN_VERSION_DOC;
+export const FAKE_VERSION_DOC: VersionDoc = structuredClone(BUILTIN_VERSION_DOC) as VersionDoc;
 
 /** The binary path the default `ok` BinaryState reports. */
 export const FAKE_BINARY_PATH = "/fake/bin/ctx";

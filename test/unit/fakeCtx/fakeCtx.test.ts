@@ -330,6 +330,10 @@ describe("fake ctx", function () {
     const doc = JSON.parse(builtIn.stdout.toString("utf8")) as VersionDoc;
     assert.equal(doc.contract_version, SUPPORTED_CONTRACT_VERSION);
     assert.deepEqual(doc.capabilities, [...CAPABILITIES, "repair"]);
+    assert.equal(doc.schema, "ctx.version.v1");
+    assert.equal(doc.dev_build, false);
+    assert.match(doc.version, /^\d+\.\d+\.\d+$/, "a release version string");
+    assert.match(doc.commit, /^[0-9a-f]{40}$/);
     assert.deepEqual(doc, FAKE_VERSION_DOC, "the fake's built-in doc equals FakeCtxCli's default");
 
     const builtInOther = await runFake(["status", "--json"]);
@@ -939,5 +943,47 @@ describe("code-review regressions (WP-0.6 /code-review high, rounds 1-3)", () =>
     assert.equal(clampRefreshInterval(240), 240);
     assert.equal(clampRefreshInterval(1e7), 86400);
     assert.equal(clampRefreshInterval(Number.POSITIVE_INFINITY), 86400);
+  });
+});
+
+describe("code-review round 4 regressions", () => {
+  it("parseEnvelope derives a missing retryable from the error code (network/server_error/rate_limited/busy), else from the exit code", () => {
+    const body = (code: string) => `{"schema":"ctx.error.v1","error":{"code":"${code}","message":"m"}}`;
+    assert.equal(parseEnvelope(body("network"), 1).error.retryable, true, "network is retryable whatever the exit");
+    assert.equal(parseEnvelope(body("busy"), 1).error.retryable, true);
+    assert.equal(parseEnvelope(body("usage"), 7).error.retryable, false, "a known non-retryable code wins over exit 7");
+    assert.equal(parseEnvelope(body("future_code"), 7).error.retryable, true, "an unknown code falls back to the exit category");
+    assert.equal(parseEnvelope(body("future_code"), 1).error.retryable, false);
+  });
+
+  it("the shared built-in version doc is frozen and FakeCtxCli hands out its own copy", async () => {
+    const { BUILTIN_VERSION_DOC } = await import("../../helpers/fixtures");
+    assert.ok(Object.isFrozen(BUILTIN_VERSION_DOC) && Object.isFrozen(BUILTIN_VERSION_DOC.capabilities), "deep-frozen");
+    assert.notEqual(FAKE_VERSION_DOC, BUILTIN_VERSION_DOC);
+    assert.deepEqual(FAKE_VERSION_DOC, BUILTIN_VERSION_DOC);
+    FAKE_VERSION_DOC.capabilities.push("mutated.by.a.test");
+    try {
+      assert.equal(BUILTIN_VERSION_DOC.capabilities.includes("mutated.by.a.test"), false, "fixtures are not corrupted");
+    } finally {
+      FAKE_VERSION_DOC.capabilities.pop();
+    }
+  });
+
+  it("vscode stub: the root afterEach fails the current test through this.test.error (never by throwing, which aborts mocha); afterAll throws for leftovers", async () => {
+    const { mochaHooks } = await import("../../helpers/vscodeStub");
+    const emitter = new vscodeStub.EventEmitter<number>();
+    emitter.event(() => { throw new Error("untaken"); });
+    const original = console.error;
+    console.error = () => undefined;
+    try { emitter.fire(1); } finally { console.error = original; }
+
+    let reported: unknown;
+    assert.doesNotThrow(() => mochaHooks.afterEach.call({ test: { error: (err: unknown) => { reported = err; } } }));
+    assert.match(String(reported), /untaken/, "the untaken error is handed to mocha's hook.error()");
+    assert.deepEqual(takeListenerErrors(), [], "and consumed");
+
+    try { emitter.fire(2); } finally { console.error = original; }
+    assert.throws(() => mochaHooks.afterAll(), /untaken/, "leftovers outside a test fail the run at the end");
+    mochaHooks.afterEach.call({ test: { error: () => assert.fail("nothing left after afterAll") } });
   });
 });

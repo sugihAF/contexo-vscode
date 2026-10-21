@@ -253,6 +253,9 @@ export const ERROR_CODES: readonly ErrorCode[] = [
   "server_unsupported", "not_implemented", "quota_exceeded", "busy",
 ];
 
+/** Codes whose same invocation may succeed when repeated (Go contract.Retryable): exit 7 and 12. */
+export const RETRYABLE_CODES: readonly ErrorCode[] = ["network", "server_error", "rate_limited", "busy"];
+
 /** Exit table (Global Constraints 'Exit codes'). 2 is only a Go panic and maps to internal. */
 export const EXIT = {
   ok: 0, internal: 1, /* 2 = Go panic */ usage: 3, auth: 4, config: 5, conflict: 6,
@@ -355,8 +358,8 @@ export function parseDoc<T extends Doc>(text: string, schema: T["schema"]): T {
  * truncated output), synthesize code = fallbackCode(exit) with the raw stderr as the
  * message; retryable = exit 7 || exit 12, matching Go's Retryable (E34). A valid body
  * keeps its code (authoritative over the exit code); a missing exit_code is filled from
- * the process exit, a missing advice array becomes [] and a missing retryable is derived
- * from the exit code.
+ * the process exit, a missing advice array becomes [] and a missing retryable comes from
+ * RETRYABLE_CODES for a known code, else from the exit code (7 or 12).
  */
 export function parseEnvelope(stderr: string, exitCode: number): ErrorEnvelope {
   const last = stderr.split(/\r?\n/).filter((l) => l.trim() !== "").pop() ?? "";
@@ -368,7 +371,11 @@ export function parseEnvelope(stderr: string, exitCode: number): ErrorEnvelope {
     }
     if (typeof env.exit_code !== "number") { (env as { exit_code: number }).exit_code = exitCode; }
     if (!Array.isArray(body.advice)) { (body as { advice: string[] }).advice = []; }
-    if (typeof body.retryable !== "boolean") { (body as { retryable: boolean }).retryable = exitCode === 7 || exitCode === 12; }
+    if (typeof body.retryable !== "boolean") {
+      (body as { retryable: boolean }).retryable = (ERROR_CODES as readonly string[]).includes(body.code)
+        ? (RETRYABLE_CODES as readonly string[]).includes(body.code)
+        : exitCode === 7 || exitCode === 12;
+    }
     return env;
   } catch {
     const code = fallbackCode(exitCode);

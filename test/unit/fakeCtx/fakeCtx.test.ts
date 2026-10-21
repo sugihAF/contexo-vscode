@@ -26,7 +26,7 @@ import { FAKE_VERSION_DOC, FakeCtxCli } from "../../helpers/fakeCtxCli";
 import {
   BASELINE_SCENARIOS, FAKE_CTX, REPO_ROOT, WORKSPACES_DIR, loadScenario, loadStatusDoc, scenarioDir, scenarioOutput,
 } from "../../helpers/fixtures";
-import { vscodeStub } from "../../helpers/vscodeStub";
+import { takeListenerErrors, vscodeStub } from "../../helpers/vscodeStub";
 import { waitFor } from "../../helpers/waitFor";
 
 // ---------- harness ----------
@@ -798,15 +798,15 @@ describe("FakeRepository (test/helpers/fakeRepository.ts, loaded over the vscode
   });
 });
 
-describe("code-review regressions (WP-0.6 /code-review high)", () => {
+describe("code-review regressions (WP-0.6 /code-review high, rounds 1-3)", () => {
   const load = createRequire(__filename);
+  const script = path.join(REPO_ROOT, "scripts", "prepare-test-workspaces.mjs");
 
-  it("parseEnvelope falls back when the last line carries the error schema but no valid error body; CtxError.fromProcess never throws", () => {
+  it("parseEnvelope falls back when the last line has the error schema but no valid error body; a valid body without exit_code keeps its code; CtxError.fromProcess never throws", () => {
     for (const line of [
       '{"schema":"ctx.error.v1","exit_code":1,"message":"x"}',
       '{"schema":"ctx.error.v1","exit_code":4,"error":null}',
       '{"schema":"ctx.error.v1","exit_code":4,"error":{"message":"no code"}}',
-      '{"schema":"ctx.error.v1","error":{"code":"busy","message":"m","advice":[],"retryable":true}}',
     ]) {
       const env = parseEnvelope(`${line}\n`, 4);
       assert.equal(env.error.code, "not_authenticated", `fallback by exit code for ${line}`);
@@ -815,39 +815,54 @@ describe("code-review regressions (WP-0.6 /code-review high)", () => {
       assert.ok(err instanceof CtxError);
       assert.deepEqual(err.advice, []);
     }
+    const noExit = parseEnvelope('{"schema":"ctx.error.v1","error":{"code":"busy","message":"m","advice":[],"retryable":true}}', 4);
+    assert.equal(noExit.error.code, "busy", "the envelope's code is authoritative over the exit code");
+    assert.equal(noExit.exit_code, 4, "a missing exit_code is filled from the process exit");
     const ok = parseEnvelope('{"schema":"ctx.error.v1","exit_code":12,"error":{"code":"busy","message":"m","advice":[],"retryable":true}}', 12);
     assert.equal(ok.error.code, "busy", "a well-formed envelope still wins");
     const noAdvice = CtxError.fromProcess('{"schema":"ctx.error.v1","exit_code":3,"error":{"code":"usage","message":"m","retryable":false}}', 3);
     assert.deepEqual(noAdvice.advice, [], "a missing advice array becomes []");
   });
 
-  it("prepare-test-workspaces refuses an --out that is --from, inside it, or an ancestor of it, and never deletes the source", () => {
+  it("prepare-test-workspaces refuses (exit 2, guard message) an --out that is --from, inside it (incl. a '..'-prefixed child name) or an ancestor of it, and never deletes the source", () => {
     const base = tempDir("prepare guard");
     const from = path.join(base, "fixtures", "workspaces");
     fs.mkdirSync(path.join(from, "basic"), { recursive: true });
     fs.writeFileSync(path.join(from, "basic", "keep.txt"), "x");
-    const script = path.join(REPO_ROOT, "scripts", "prepare-test-workspaces.mjs");
-    for (const out of [from, path.join(from, "copy"), path.join(base, "fixtures"), base]) {
+    const refused = [from, path.join(from, "copy"), path.join(from, "..cache"), path.join(base, "fixtures"), base];
+    if (process.platform === "darwin" || process.platform === "win32") {
+      refused.push(path.join(base, "fixtures", "WORKSPACES"), path.join(base, "FIXTURES")); // same dirs on a case-insensitive FS
+    }
+    for (const out of refused) {
       const r = spawnSync(process.execPath, [script, "--from", from, "--out", out], { encoding: "utf8" });
-      assert.notEqual(r.status, 0, `--out ${out} must be refused`);
+      assert.equal(r.status, 2, `--out ${out} must be refused by the guard: ${r.stderr}`);
+      assert.match(r.stderr, /--out must not be --from, inside it, or an ancestor/);
       assert.ok(fs.existsSync(path.join(from, "basic", "keep.txt")), `--out ${out} deleted the source`);
     }
+    const ok = spawnSync(process.execPath, [script, "--from", from, "--out", path.join(base, "copy")], { encoding: "utf8" });
+    assert.equal(ok.status, 0, ok.stderr);
+    assert.ok(fs.existsSync(path.join(base, "copy", "basic", "keep.txt")));
   });
 
-  it("fake ctx answers version --json with the built-in doc when the selected scenario has no version rule (its default never applies to version)", async () => {
-    for (const scenario of ["mixed", "not-initialized", "clean"]) {
-      const r = await runFake(["version", "--json"], { env: baseEnv({ FAKE_CTX_SCENARIO: scenario }) });
-      assert.equal(r.code, 0, `${scenario}: ${r.stderr.toString()}`);
-      const doc = JSON.parse(r.stdout.toString()) as { schema: string; contract_version: number; capabilities: string[] };
-      assert.equal(doc.schema, "ctx.version.v1");
-      assert.equal(doc.capabilities.at(-1), "repair");
+  it("fake ctx answers version with the built-in handshake when the selected scenario has no version rule, and fixtures.scenarioOutput agrees for every baseline scenario", async () => {
+    for (const scenario of BASELINE_SCENARIOS) {
+      for (const argv of [["version", "--json"], ["version", "--short"]]) {
+        const r = await runFake(argv, { env: baseEnv({ FAKE_CTX_SCENARIO: scenario }) });
+        const expected = scenarioOutput(scenario, argv);
+        assert.ok(expected, `${scenario} ${argv.join(" ")}: scenarioOutput must describe the answer`);
+        assert.equal(r.code, expected.exit, `${scenario} ${argv.join(" ")}: ${r.stderr.toString()}`);
+        assert.equal(lf(r.stdout), lf(expected.stdout), `${scenario} ${argv.join(" ")} stdout`);
+      }
     }
+    const mixed = await runFake(["version", "--json"], { env: baseEnv({ FAKE_CTX_SCENARIO: "not-initialized" }) });
+    assert.equal(mixed.code, 0, "a scenario default never applies to version");
+    assert.deepEqual(JSON.parse(mixed.stdout.toString()), FAKE_VERSION_DOC);
     const tooOld = await runFake(["version", "--json"], { env: baseEnv({ FAKE_CTX_SCENARIO: "ctx-too-old" }) });
     assert.equal(tooOld.code, 1, "an explicit version rule still wins");
   });
 
   it("fake ctx and fixtures.selectRule ignore the -m commit message when matching rule tokens", async () => {
-    for (const message of ["pull", "status", "--offline"]) {
+    for (const message of ["pull", "status", "--offline", "-m"]) {
       const root = rootWith("clean");
       const argv = ["push", "--json", "--yes", "--root", root, "-m", message];
       const r = await runFake(argv);
@@ -857,43 +872,40 @@ describe("code-review regressions (WP-0.6 /code-review high)", () => {
     }
   });
 
-  it("FakeRepository.refresh never throws and clears lastError on every successful refresh", async () => {
+  it("FakeRepository.refresh: a CtxError from the hook lands in lastError, every success clears it, and any other error (a test bug) is rethrown loudly, also through run()", async () => {
     const { fakeRepository } = load("../../helpers/fakeRepository") as typeof import("../../helpers/fakeRepository");
     const repo = fakeRepository({ root: "/work/beta" });
     repo.lastError = CtxError.extension("timeout", "slow");
     await repo.refresh();
     assert.equal(repo.lastError, undefined, "no hook: the refresh succeeds and clears lastError");
 
-    repo.onRefresh = () => { throw new Error("hook bug"); };
+    repo.onRefresh = () => { throw CtxError.fromProcess("", 7); };
     await repo.refresh();
-    const afterHook = (repo as { lastError: CtxError | undefined }).lastError;
-    assert.ok(afterHook instanceof CtxError, "a non-CtxError from the hook lands in lastError");
-    assert.match(afterHook.message, /hook bug/);
+    assert.equal((repo as { lastError: CtxError | undefined }).lastError?.code, "network");
 
-    const result = await repo.run("push", async () => "pushed");
-    assert.equal(result, "pushed", "a throwing refresh hook never replaces fn's result");
+    repo.onRefresh = () => { throw new Error("hook bug"); };
+    await assert.rejects(repo.refresh(), /hook bug/);
+    await assert.rejects(repo.run("push", async () => "pushed"), /hook bug/, "a test bug in the hook fails run() loudly");
   });
 
-  it("the vscode stub's EventEmitter.fire never throws: a throwing listener is reported and the others still run", () => {
+  it("the vscode stub's EventEmitter.fire never throws (like VS Code's Emitter); a throwing listener is recorded so the root afterEach hook fails the test unless it takes the errors", () => {
     const emitter = new vscodeStub.EventEmitter<number>();
     const got: number[] = [];
     emitter.event(() => { throw new Error("listener bug"); });
     emitter.event((n) => got.push(n));
     const original = console.error;
-    const reported: unknown[] = [];
-    console.error = (...a: unknown[]) => { reported.push(a); };
+    console.error = () => undefined;
     try {
       assert.doesNotThrow(() => emitter.fire(7));
     } finally {
       console.error = original;
     }
-    assert.deepEqual(got, [7]);
-    assert.equal(reported.length, 1, "the listener error is reported once");
+    assert.deepEqual(got, [7], "the other listeners still run");
+    const errors = takeListenerErrors();
+    assert.equal(errors.length, 1);
+    assert.match(String(errors[0]), /listener bug/);
+    assert.deepEqual(takeListenerErrors(), [], "taking clears them");
   });
-});
-
-describe("code-review round 2 regressions", () => {
-  const load = createRequire(__filename);
 
   it("offline scenarios (mixed-offline, network-error) answer show --at server/<sha> and resolve with the network envelope (exit 7, retryable), base shows still work", async () => {
     for (const scenario of ["mixed-offline", "network-error"]) {
@@ -915,12 +927,14 @@ describe("code-review round 2 regressions", () => {
     }
   });
 
-  it("clampRefreshInterval: default 180 for missing/non-numeric, never below 60, never above 86400 (setTimeout overflow)", () => {
+  it("clampRefreshInterval: numbers and numeric strings, default 180 otherwise, never below 60, never above 86400 (setTimeout overflow)", () => {
     const { clampRefreshInterval } = load("../../../src/services") as typeof import("../../../src/services");
     assert.equal(clampRefreshInterval(undefined), 180);
     assert.equal(clampRefreshInterval(null), 180);
     assert.equal(clampRefreshInterval("abc"), 180);
+    assert.equal(clampRefreshInterval(""), 180);
     assert.equal(clampRefreshInterval(Number.NaN), 180);
+    assert.equal(clampRefreshInterval("600"), 600, "a hand-edited numeric string is honoured");
     assert.equal(clampRefreshInterval(5), 60);
     assert.equal(clampRefreshInterval(240), 240);
     assert.equal(clampRefreshInterval(1e7), 86400);

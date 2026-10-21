@@ -8,7 +8,7 @@
 //   --from  source directory (default: test/fixtures/workspaces)
 //   --out   destination directory (default: .vscode-test/workspaces); removed first
 import { cpSync, existsSync, readdirSync, rmSync } from "node:fs";
-import { basename, dirname, isAbsolute, relative, resolve } from "node:path";
+import { basename, dirname, isAbsolute, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -31,10 +31,13 @@ if (!existsSync(from)) {
   console.error(`prepare-test-workspaces: ${from} does not exist`);
   process.exit(1);
 }
-/** True when `child` is `dir` or below it. */
+const CASE_INSENSITIVE_FS = process.platform === "darwin" || process.platform === "win32";
+
+/** True when `child` is `dir` or below it (case-insensitive where the file system is). */
 function within(dir, child) {
-  const rel = relative(dir, child);
-  return rel === "" || (!rel.startsWith("..") && !isAbsolute(rel));
+  const fold = (p) => (CASE_INSENSITIVE_FS ? resolve(p).toLowerCase() : resolve(p));
+  const rel = relative(fold(dir), fold(child));
+  return rel === "" || (rel !== ".." && !rel.startsWith(`..${sep}`) && !isAbsolute(rel));
 }
 // --out is deleted recursively: it must not be --from, sit inside it, contain it, or
 // contain the repository.

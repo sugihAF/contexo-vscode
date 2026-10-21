@@ -351,20 +351,22 @@ export function parseDoc<T extends Doc>(text: string, schema: T["schema"]): T {
 
 /**
  * stderr contract: the LAST non-empty line is the envelope. When it does not parse, or
- * lacks a numeric exit_code and an error body with string code and message (old ctx,
- * panic trace, exit 2, truncated output), synthesize code = fallbackCode(exit) with the
- * raw stderr as the message; retryable = exit 7 || exit 12, matching Go's Retryable (E34).
- * A missing advice array is normalized to [].
+ * lacks an error body with string code and message (old ctx, panic trace, exit 2,
+ * truncated output), synthesize code = fallbackCode(exit) with the raw stderr as the
+ * message; retryable = exit 7 || exit 12, matching Go's Retryable (E34). A valid body
+ * keeps its code (authoritative over the exit code); a missing exit_code is filled from
+ * the process exit, a missing advice array becomes [] and a missing retryable is derived
+ * from the exit code.
  */
 export function parseEnvelope(stderr: string, exitCode: number): ErrorEnvelope {
   const last = stderr.split(/\r?\n/).filter((l) => l.trim() !== "").pop() ?? "";
   try {
     const env = parseDoc<ErrorEnvelope>(last, "ctx.error.v1");
     const body = env.error as Partial<ErrorBody> | null | undefined;
-    if (typeof env.exit_code !== "number" || typeof body !== "object" || body === null
-      || typeof body.code !== "string" || typeof body.message !== "string") {
+    if (typeof body !== "object" || body === null || typeof body.code !== "string" || typeof body.message !== "string") {
       throw new Error("malformed ctx.error.v1 envelope");
     }
+    if (typeof env.exit_code !== "number") { (env as { exit_code: number }).exit_code = exitCode; }
     if (!Array.isArray(body.advice)) { (body as { advice: string[] }).advice = []; }
     if (typeof body.retryable !== "boolean") { (body as { retryable: boolean }).retryable = exitCode === 7 || exitCode === 12; }
     return env;

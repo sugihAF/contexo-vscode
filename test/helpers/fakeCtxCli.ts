@@ -22,30 +22,19 @@ import {
   type TerminalInvocation,
 } from "../../src/cli/types";
 import {
-  CAPABILITIES,
   type PullDoc,
   type ResolveDoc,
   type ResolveStrategy,
   type StatusDoc,
   type VersionDoc,
 } from "../../src/contract/types";
-import { loadStatusDoc } from "./fixtures";
+import { BUILTIN_VERSION_DOC, loadStatusDoc } from "./fixtures";
 
 /**
  * The handshake document of a current ctx: contract 1, the 11 v1 capabilities followed by
  * 'repair' (E19). The fake ctx's built-in `version --json` answer is byte-for-byte this doc.
  */
-export const FAKE_VERSION_DOC: VersionDoc = {
-  schema: "ctx.version.v1",
-  contract_version: 1,
-  version: "0.7.0",
-  commit: "5d3c1e0a9b8f7e6d5c4b3a29180716f5e4d3c2b1",
-  date: "2026-10-14T12:00:00Z",
-  dev_build: false,
-  os: "darwin",
-  arch: "arm64",
-  capabilities: [...CAPABILITIES, "repair"],
-};
+export const FAKE_VERSION_DOC: VersionDoc = BUILTIN_VERSION_DOC;
 
 /** The binary path the default `ok` BinaryState reports. */
 export const FAKE_BINARY_PATH = "/fake/bin/ctx";

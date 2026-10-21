@@ -2,7 +2,7 @@
 // The rule matcher mirrors test/fake-ctx/fake-ctx.mjs (pinned by fakeCtx.test.ts).
 import * as fs from "node:fs";
 import * as path from "node:path";
-import type { StatusDoc } from "../../src/contract/types";
+import type { StatusDoc, VersionDoc } from "../../src/contract/types";
 
 /**
  * The baseline scenarios WP-0.6 owns. Wave-1 scenarios are e1-..e8- prefixed and owned
@@ -34,6 +34,11 @@ export const REPO_ROOT: string = findRepoRoot(__dirname);
 export const SCENARIOS_DIR = path.join(REPO_ROOT, "test", "fixtures", "ctx", "scenarios");
 export const WORKSPACES_DIR = path.join(REPO_ROOT, "test", "fixtures", "workspaces");
 export const FAKE_CTX = path.join(REPO_ROOT, "test", "fake-ctx", "fake-ctx.mjs");
+
+/** The fake ctx's built-in handshake document (test/fake-ctx/builtin-version.json): contract 1, 11 v1 capabilities + 'repair'. */
+export const BUILTIN_VERSION_DOC: VersionDoc = JSON.parse(
+  fs.readFileSync(path.join(REPO_ROOT, "test", "fake-ctx", "builtin-version.json"), "utf8"),
+) as VersionDoc;
 
 /** One scenario.json rule. Files are relative to the scenario's directory ('..' allowed). */
 export interface ScenarioOutput {
@@ -88,10 +93,14 @@ export function selectRule(scenario: Scenario, argv: readonly string[]): Scenari
   return argv[0] === "version" ? undefined : scenario.default;
 }
 
-/** What the fake ctx would print for argv (no delay, no `then`). */
+/**
+ * What the fake ctx would print for argv (no delay, no `then`), including its built-in
+ * handshake for a `version --json` / `version --short` the scenario has no rule for.
+ * undefined when the fake would fail with its internal 'no rule' envelope.
+ */
 export function scenarioOutput(name: string, argv: readonly string[]): { stdout: string; stderr: string; exit: number } | undefined {
   const rule = selectRule(loadScenario(name), argv);
-  if (!rule) { return undefined; }
+  if (!rule) { return builtinVersionOutput(argv); }
   return {
     stdout: readText(name, rule.stdout, rule.stdoutFile),
     stderr: readText(name, rule.stderr, rule.stderrFile),
@@ -138,6 +147,14 @@ export function scenarioPayloads(name: string): ScenarioPayload[] {
     }
   }
   return out;
+}
+
+/** fake-ctx.mjs's built-in handshake output, or undefined when it does not answer argv. */
+export function builtinVersionOutput(argv: readonly string[]): { stdout: string; stderr: string; exit: number } | undefined {
+  if (argv[0] !== "version") { return undefined; }
+  if (argv.includes("--json")) { return { stdout: `${JSON.stringify(BUILTIN_VERSION_DOC, null, 2)}\n`, stderr: "", exit: 0 }; }
+  if (argv.includes("--short")) { return { stdout: `${BUILTIN_VERSION_DOC.version}\n`, stderr: "", exit: 0 }; }
+  return undefined;
 }
 
 function sourceOf(name: string, file: string | undefined): string {

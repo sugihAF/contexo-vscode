@@ -105,16 +105,27 @@ describe("e0 activation", () => {
     api = await waitForActivation();
     const services = api.services;
     const originalModel = services.model;
+    const calls = { throwing: 0, nonPromise: 0 };
     const throwing = fakeModel();
-    (throwing as { initialize: () => Promise<void> }).initialize = () => { throw new Error("initialize bug"); };
+    (throwing as { initialize: () => Promise<void> }).initialize = () => { calls.throwing++; throw new Error("initialize bug"); };
     const nonPromise = fakeModel();
-    (nonPromise as unknown as { initialize: () => void }).initialize = () => undefined;
-
-    await api.hooks.overrideServices({ model: throwing });
-    assert.equal(services.model, throwing);
-    await assertCommandsRegisteredOnce();
-    await api.hooks.overrideServices({ model: nonPromise });
-    await assertCommandsRegisteredOnce();
+    (nonPromise as unknown as { initialize: () => void }).initialize = () => { calls.nonPromise++; };
+    const logged: string[] = [];
+    const log = services.log as unknown as { error: (...a: unknown[]) => void };
+    const originalError = log.error;
+    log.error = (...a: unknown[]) => { logged.push(a.map(String).join(" ")); originalError.apply(services.log, a); };
+    try {
+      await api.hooks.overrideServices({ model: throwing });
+      assert.equal(services.model, throwing);
+      assert.equal(calls.throwing, 1, "wire() still calls initialize() (synchronously, once)");
+      await assertCommandsRegisteredOnce();
+      await api.hooks.overrideServices({ model: nonPromise });
+      assert.equal(calls.nonPromise, 1);
+      await assertCommandsRegisteredOnce();
+    } finally {
+      log.error = originalError;
+    }
+    assert.ok(logged.some((l) => l.includes("model initialize failed") && l.includes("initialize bug")), `the failure is logged: ${JSON.stringify(logged)}`);
     await api.hooks.resetServices();
     assert.equal(services.model, originalModel);
     await assertCommandsRegisteredOnce();

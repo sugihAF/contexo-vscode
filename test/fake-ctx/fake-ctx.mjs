@@ -38,22 +38,13 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const SCENARIOS_DIR = resolve(HERE, "..", "fixtures", "ctx", "scenarios");
 const RECORDED_ENV = ["NO_COLOR", "CONTEXO_NO_UPDATE_CHECK", "CONTEXO_CLIENT"];
 
-/** `ctx version --json` of a current release build (== FAKE_VERSION_DOC in test/helpers/fakeCtxCli.ts). */
-const BUILTIN_VERSION_DOC = {
-  schema: "ctx.version.v1",
-  contract_version: 1,
-  version: "0.7.0",
-  commit: "5d3c1e0a9b8f7e6d5c4b3a29180716f5e4d3c2b1",
-  date: "2026-10-14T12:00:00Z",
-  dev_build: false,
-  os: "darwin",
-  arch: "arm64",
-  capabilities: [
-    "status.json", "status.offline", "show.base", "show.server", "show.sha",
-    "pull.json", "push.json", "push.paths", "push.distill_guard", "resolve", "errors.envelope",
-    "repair",
-  ],
-};
+/** `ctx version --json` of a current release build: test/fake-ctx/builtin-version.json (also read by
+ *  test/helpers/fixtures.ts as BUILTIN_VERSION_DOC and by FakeCtxCli as FAKE_VERSION_DOC). */
+function builtinVersionDoc() {
+  // Read lazily: only the built-in handshake needs it (a private copy of this file in a
+  // test without builtin-version.json still serves every scenario rule).
+  return JSON.parse(readFileSync(join(HERE, "builtin-version.json"), "utf8"));
+}
 
 const argv = process.argv.slice(2);
 const rootIdx = argv.indexOf("--root");
@@ -123,11 +114,11 @@ function selectRule(scenario) {
 function builtinVersion() {
   if (argv[0] !== "version") { return false; }
   if (argv.includes("--json")) {
-    process.stdout.write(`${JSON.stringify(BUILTIN_VERSION_DOC, null, 2)}\n`);
+    process.stdout.write(`${JSON.stringify(builtinVersionDoc(), null, 2)}\n`);
     return true;
   }
   if (argv.includes("--short")) {
-    process.stdout.write(`${BUILTIN_VERSION_DOC.version}\n`);
+    process.stdout.write(`${builtinVersionDoc().version}\n`);
     return true;
   }
   return false;

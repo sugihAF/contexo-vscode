@@ -47,10 +47,14 @@ export const DEFAULT_REMOTE_REFRESH_SECONDS = 180;
 /** One day: keeps seconds × 1000 far below setTimeout's 2^31-1 ms limit (larger values fire after 1 ms). */
 export const MAX_REMOTE_REFRESH_SECONDS = 86_400;
 
-/** contexo.remoteRefresh.intervalSeconds as used: default for a missing or non-numeric value, clamped to [60, 86400]. */
+/**
+ * contexo.remoteRefresh.intervalSeconds as used: a number or numeric string (hand-edited
+ * settings), clamped to [60, 86400]; anything else gives the default 180.
+ */
 export function clampRefreshInterval(value: unknown): number {
-  if (typeof value !== "number" || Number.isNaN(value)) { return DEFAULT_REMOTE_REFRESH_SECONDS; }
-  return Math.min(MAX_REMOTE_REFRESH_SECONDS, Math.max(MIN_REMOTE_REFRESH_SECONDS, value));
+  const n = typeof value === "number" ? value : typeof value === "string" && value.trim() !== "" ? Number(value) : Number.NaN;
+  if (Number.isNaN(n)) { return DEFAULT_REMOTE_REFRESH_SECONDS; }
+  return Math.min(MAX_REMOTE_REFRESH_SECONDS, Math.max(MIN_REMOTE_REFRESH_SECONDS, n));
 }
 
 /** ContexoConfig over vscode.workspace.getConfiguration('contexo'). */

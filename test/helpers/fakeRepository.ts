@@ -9,9 +9,9 @@
 //   unqueued and leave `operation` alone. The promise settles with fn's result or rejection
 //   (after that refresh).
 // - refresh(o) only logs (remote defaults to false) and runs the optional onRefresh hook;
-//   it never throws: an error from the hook lands in lastError (a non-CtxError wrapped as
-//   contract_mismatch), and every successful refresh clears it ('cleared by the next
-//   success').
+//   a CtxError from the hook lands in lastError, every successful refresh clears it
+//   ('cleared by the next success'), and any other hook error (a test bug, e.g. a failed
+//   assert) is rethrown so the test fails loudly, also through run().
 import * as vscode from "vscode";
 import { CtxError } from "../../src/cli/types";
 import type { PageEntry, StatusDoc } from "../../src/contract/types";
@@ -91,11 +91,11 @@ export class FakeRepository implements IRepository, vscode.Disposable {
       await this.onRefresh?.(call);
       this.lastError = undefined; // a successful status clears it (IRepository.lastError)
     } catch (err) {
-      // Like the real repository, refresh never throws: failures land in lastError. A
-      // non-CtxError (a bug in the test's hook) is wrapped so it stays visible.
-      this.lastError = err instanceof CtxError
-        ? err
-        : CtxError.extension("contract_mismatch", `FakeRepository onRefresh hook threw: ${err instanceof Error ? err.message : String(err)}`);
+      // Like the real repository, a ctx failure (CtxError) never escapes: it lands in
+      // lastError. Any other error is a bug in the test's own hook (e.g. a failed assert)
+      // and is rethrown on purpose, so it fails the test (also through run()).
+      if (err instanceof CtxError) { this.lastError = err; return; }
+      throw err;
     }
   }
 

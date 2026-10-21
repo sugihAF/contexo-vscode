@@ -38,13 +38,17 @@ export function wire(s: Services): vscode.Disposable {
   const model = s.model;
   if (!initialized.has(model)) {
     initialized.add(model);
-    // Deferred into a promise chain: a synchronous throw or a non-promise return from
-    // initialize() can never escape wire() and strand the registrations above.
-    void Promise.resolve()
-      .then(() => model.initialize())
-      .catch((err: unknown) => {
-        s.log.error(`model initialize failed: ${err instanceof Error ? err.stack ?? err.message : String(err)}`);
-      });
+    // Started synchronously (before any later swap can dispose the model), but a
+    // synchronous throw or a non-promise return can never escape wire() and strand the
+    // registrations above.
+    const failed = (err: unknown): void => {
+      s.log.error(`model initialize failed: ${err instanceof Error ? err.stack ?? err.message : String(err)}`);
+    };
+    try {
+      void Promise.resolve(model.initialize()).catch(failed);
+    } catch (err) {
+      failed(err);
+    }
   }
   return vscode.Disposable.from(...subs);
 }

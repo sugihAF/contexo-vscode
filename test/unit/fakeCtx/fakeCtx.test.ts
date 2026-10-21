@@ -1,23 +1,32 @@
 // The fake ctx (test/fake-ctx/fake-ctx.mjs, E33), its baseline scenarios and workspaces,
-// scripts/prepare-test-workspaces.mjs and the FakeCtxCli helper. Plain mocha, no vscode:
-// the fake runs as a real child process (`node fake-ctx.mjs <args>`), with temp roots
-// whose paths contain a space.
+// scripts/prepare-test-workspaces.mjs, the FakeCtxCli helper, the TestApi seam
+// (src/testApi.ts) and the unit-test vscode stub (test/helpers/vscodeStub.ts). Plain mocha,
+// no vscode: the fake runs as a real child process (`node fake-ctx.mjs <args>`), with temp
+// roots whose paths contain a space.
 import * as assert from "node:assert/strict";
 import { spawn, spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import { createRequire } from "node:module";
 import * as os from "node:os";
 import * as path from "node:path";
+import { URI } from "vscode-uri";
 import * as cliTypes from "../../../src/cli/types";
 import { CtxError, type BinaryState, type PushOutcome } from "../../../src/cli/types";
+import type * as syncModule from "../../../src/commands/sync";
 import {
   CAPABILITIES, REQUIRED_CAPABILITIES, SUPPORTED_CONTRACT_VERSION, parseEnvelope,
   type ErrorEnvelope, type PullDoc, type StatusDoc, type VersionDoc,
 } from "../../../src/contract/types";
+import { toContexoUri } from "../../../src/fs/contexoUri";
+import type { Services } from "../../../src/services";
+import type * as statusBarModule from "../../../src/statusBar";
+import { createTestApi, testHooks, type ServiceSeam, type SnapshotHooks } from "../../../src/testApi";
+import type { Prompts } from "../../../src/ui/prompts";
 import { FAKE_VERSION_DOC, FakeCtxCli } from "../../helpers/fakeCtxCli";
 import {
   BASELINE_SCENARIOS, FAKE_CTX, REPO_ROOT, WORKSPACES_DIR, loadScenario, loadStatusDoc, scenarioDir, scenarioOutput,
 } from "../../helpers/fixtures";
+import { vscodeStub } from "../../helpers/vscodeStub";
 import { waitFor } from "../../helpers/waitFor";
 
 // ---------- harness ----------
@@ -619,5 +628,153 @@ describe("FakeCtxCli", () => {
     await assert.rejects(waitFor(() => false, { timeoutMs: 60, intervalMs: 5, message: "never true" }), /timed out after 60 ms: never true/);
     assert.ok(Date.now() - t0 >= 60);
     await assert.rejects(waitFor(() => { throw new Error("inner"); }, { timeoutMs: 30, intervalMs: 5 }), /inner/);
+  });
+});
+
+describe("TestApi seam (src/testApi.ts)", () => {
+  type HookUri = Parameters<SnapshotHooks["quickDiffOriginal"]>[0];
+  const asHookUri = (u: URI): HookUri => u as unknown as HookUri;
+
+  it("createTestApi exposes every SnapshotHooks member live through api.hooks (quickDiffOriginal, resource commands, acceptInputCommand and tree ids included)", async () => {
+    const seamCalls: string[] = [];
+    const seam: ServiceSeam = {
+      overrideServices: () => { seamCalls.push("overrideServices"); return Promise.resolve(); },
+      resetServices: () => { seamCalls.push("resetServices"); return Promise.resolve(); },
+      setPrompts: () => { seamCalls.push("setPrompts"); },
+    };
+    const services = {} as Services;
+    const api = createTestApi(services, seam);
+    assert.equal(api.services, services);
+
+    const root = "/ws/basic";
+    const relPath = "wiki/concepts/auth-flow.md";
+    const file = asHookUri(URI.file(`${root}/.contexo/${relPath}`));
+    const base = toContexoUri(file, "base", root, relPath);
+    // In the host, acceptInputCommand.arguments[0] is the SourceControl object itself.
+    const sourceControl = { id: "contexo", rootUri: URI.file(root) };
+    // A full SnapshotHooks object: the compiler fails this test when a member is added
+    // to SnapshotHooks without being added here.
+    const hooks: SnapshotHooks = {
+      scmSnapshot: () => ({
+        repos: [{
+          root, count: 3, inputPlaceholder: "Message", statusBarCommands: ["contexo.refresh"],
+          acceptInputCommand: { command: "contexo.push", title: "Push", arguments: [sourceControl] },
+          groups: [{
+            id: "changes", label: "Changes", hideWhenEmpty: true,
+            resources: [{
+              relPath, contextValue: "modified",
+              command: { command: "vscode.diff", title: "Open Changes", arguments: [base.toString(), file.toString(), "auth-flow.md (Base ↔ Local)"] },
+            }],
+          }],
+        }],
+      }),
+      treeSnapshot: () => ({ roots: [{ label: "basic", id: `${root}|#concepts`, children: [] }] }),
+      decorationFor: () => ({ badge: "M" }),
+      statusBarSnapshot: () => ({ items: [{ id: "contexo.status", text: "$(cloud) Contexo" }] }),
+      quickDiffOriginal: (uri) => (uri.toString() === file.toString() ? base : undefined),
+    };
+    const keys = Object.keys(hooks) as (keyof SnapshotHooks)[];
+    try {
+      for (const k of keys) { assert.equal(api.hooks[k], undefined, `hooks.${k} is unset until a module assigns it`); }
+      // Modules assign their hooks after activation (in wire()); the getters see them.
+      Object.assign(testHooks, hooks);
+      for (const k of keys) {
+        assert.equal(api.hooks[k], hooks[k], `hooks.${k} is the live testHooks.${k}`);
+        assert.ok(Object.keys(api.hooks).includes(k), `hooks.${k} is enumerable`);
+      }
+      const repo = api.hooks.scmSnapshot?.().repos[0];
+      assert.equal(repo?.acceptInputCommand?.command, "contexo.push");
+      assert.equal(repo?.acceptInputCommand?.arguments?.[0], sourceControl);
+      assert.deepEqual(repo?.groups[0]?.resources[0]?.command?.arguments?.slice(0, 2), [base.toString(), file.toString()]);
+      assert.equal(api.hooks.treeSnapshot?.().roots[0]?.id, `${root}|#concepts`);
+      assert.equal(await api.hooks.quickDiffOriginal?.(file), base);
+      assert.equal(await api.hooks.quickDiffOriginal?.(asHookUri(URI.file("/elsewhere/notes.md"))), undefined);
+
+      await api.hooks.overrideServices({});
+      await api.hooks.resetServices();
+      api.hooks.setPrompts({} as Prompts);
+      assert.deepEqual(seamCalls, ["overrideServices", "resetServices", "setPrompts"]);
+    } finally {
+      for (const k of keys) { delete testHooks[k]; }
+    }
+  });
+});
+
+describe("unit-test vscode stub (test/helpers/vscodeStub.ts)", () => {
+  const load = createRequire(__filename);
+
+  it("test:unit installs it before any spec file loads (mocha --require), so a spec may import vscode-dependent src modules at top level", () => {
+    // require.cache keys are in load-start order: the stub must precede every spec file
+    // (with a per-file import instead, the alphabetically earlier specs would load first).
+    const keys = Object.keys(require.cache);
+    const stubAt = keys.indexOf(load.resolve("../../helpers/vscodeStub"));
+    const firstSpecAt = keys.findIndex((k) => /[\\/]out[\\/]test[\\/]unit[\\/].+\.test\.js$/.test(k));
+    assert.ok(stubAt >= 0 && firstSpecAt >= 0, `stub ${stubAt}, first spec ${firstSpecAt}`);
+    assert.ok(stubAt < firstSpecAt, `the stub loaded after ${String(keys[firstSpecAt])}: is --require out/test/helpers/vscodeStub.js missing from test:unit?`);
+    assert.equal(load("vscode"), vscodeStub, "require('vscode') is the stub");
+  });
+
+  it("src modules that import vscode at runtime load in plain mocha, and their pure exports run", () => {
+    const statusBar = load("../../../src/statusBar") as typeof statusBarModule;
+    assert.deepEqual(statusBar.statusBarCommandsFor(undefined), [], "WP-1.12: undefined gives []");
+    const sync = load("../../../src/commands/sync") as typeof syncModule;
+    for (const handler of [sync.push, sync.pushSelected, sync.pull]) { assert.equal(typeof handler, "function"); }
+  });
+
+  it("Disposable, EventEmitter, Uri (vscode-uri), ThemeColor, ThemeIcon and the enums behave like vscode's; any other API throws a clear error", () => {
+    const disposed: string[] = [];
+    const all = vscodeStub.Disposable.from(new vscodeStub.Disposable(() => disposed.push("a")), { dispose: () => disposed.push("b") });
+    all.dispose();
+    all.dispose();
+    assert.deepEqual(disposed, ["a", "b"], "Disposable.from disposes every member, once");
+
+    const emitter = new vscodeStub.EventEmitter<number>();
+    const got: number[] = [];
+    const bag: { dispose(): unknown }[] = [];
+    const sub = emitter.event((n) => got.push(n), undefined, bag);
+    assert.equal(bag[0], sub, "the subscription is pushed to the disposables array");
+    emitter.fire(1);
+    sub.dispose();
+    emitter.fire(2);
+    emitter.event((n) => got.push(n * 10));
+    emitter.dispose();
+    emitter.fire(3);
+    assert.deepEqual(got, [1], "a disposed subscription or emitter delivers nothing");
+
+    const uri = vscodeStub.Uri.file("/My Projects/.contexo/wiki/a b.md");
+    assert.equal(uri.toString(), URI.file("/My Projects/.contexo/wiki/a b.md").toString());
+    assert.ok(URI.file("/x") instanceof vscodeStub.Uri, "vscode-uri URIs are instances of the stub Uri");
+    assert.equal(vscodeStub.Uri.joinPath(uri, "..", "c.md").path, "/My Projects/.contexo/wiki/c.md");
+    assert.equal(vscodeStub.Uri.parse("contexo:/a.md?q").query, "q");
+
+    const color = new vscodeStub.ThemeColor("statusBarItem.warningBackground");
+    assert.equal(color.id, "statusBarItem.warningBackground");
+    const icon = new vscodeStub.ThemeIcon("warning", color);
+    assert.equal(icon.id, "warning");
+    assert.equal(icon.color, color);
+    assert.equal(vscodeStub.ThemeIcon.File.id, "file");
+    assert.equal(vscodeStub.ThemeIcon.Folder.id, "folder");
+    assert.equal(vscodeStub.StatusBarAlignment.Left, 1);
+    assert.equal(vscodeStub.StatusBarAlignment.Right, 2);
+    assert.deepEqual([vscodeStub.TreeItemCollapsibleState.None, vscodeStub.TreeItemCollapsibleState.Collapsed, vscodeStub.TreeItemCollapsibleState.Expanded], [0, 1, 2]);
+
+    const anyApi = vscodeStub as unknown as Record<string, unknown>;
+    assert.throws(() => anyApi.window, /vscode\.window is not available in unit tests/);
+    assert.throws(() => anyApi.commands, /vscode\.commands is not available in unit tests/);
+    assert.equal(anyApi.then, undefined, "probing for a thenable is not an error");
+    assert.equal(anyApi.__esModule, true);
+  });
+
+  it("the frozen type-only modules never require vscode at runtime", () => {
+    // The stub would hide a runtime vscode import in these files; the compiled output must
+    // not contain one (src/contract/types.ts imports nothing at all).
+    for (const rel of [
+      "../../../src/contract/types", "../../../src/cli/types", "../../../src/fs/contexoUri",
+      "../../helpers/fakeCtxCli", "../../helpers/fixtures",
+    ]) {
+      const js = fs.readFileSync(load.resolve(rel), "utf8");
+      assert.doesNotMatch(js, /require\(["']vscode["']\)/, `${rel}: type-only vscode imports`);
+    }
+    assert.doesNotMatch(fs.readFileSync(load.resolve("../../../src/contract/types"), "utf8"), /require\(/, "contract/types imports nothing");
   });
 });

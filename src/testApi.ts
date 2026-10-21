@@ -6,12 +6,26 @@ import type { IModel } from "./model/types";
 import type { Services } from "./services";
 import type { Prompts } from "./ui/prompts";
 
+/**
+ * A vscode.Command as plain data. Uri arguments become uri.toString(); every other argument
+ * is passed through unchanged (acceptInputCommand's arguments[0] is the SourceControl object
+ * itself, so a test can check its id and rootUri).
+ */
+export interface CommandSnapshot {
+  command: string;
+  title: string;
+  tooltip?: string;
+  arguments?: unknown[];
+}
+
 export interface ScmResourceSnapshot {
   relPath: string;
   /** resourceState.contextValue == the PageState. */
   contextValue: string;
   tooltip?: string;
   strikeThrough?: boolean;
+  /** resourceState.command (what a click runs); absent when the state has none. */
+  command?: CommandSnapshot;
 }
 export interface ScmGroupSnapshot {
   /** Resource group id == contract ScmGroup. */
@@ -28,11 +42,15 @@ export interface ScmRepoSnapshot {
   /** Command ids of SourceControl.statusBarCommands. */
   statusBarCommands: string[];
   groups: ScmGroupSnapshot[];
+  /** SourceControl.acceptInputCommand (Cmd/Ctrl+Enter in the input box). */
+  acceptInputCommand?: CommandSnapshot;
 }
 export interface ScmSnapshot { repos: ScmRepoSnapshot[]; }
 
 export interface TreeNodeSnapshot {
   label: string;
+  /** TreeItem.id (WP-1.11: '<root>|<path>', '<root>|#<group>', '<root>|#pending'). */
+  id?: string;
   description?: string;
   /** 'page.<state>' for pages, 'session' for the pending-capture item. */
   contextValue?: string;
@@ -62,7 +80,21 @@ export interface SnapshotHooks {
   treeSnapshot(): TreeSnapshot;
   decorationFor(uri: Uri): DecorationSnapshot | undefined;
   statusBarSnapshot(): StatusBarSnapshot;
+  /**
+   * What the QuickDiffProvider of the SourceControl that owns `uri` returns from
+   * provideOriginalResource(uri); undefined when no repository owns it (WP-1.9).
+   */
+  quickDiffOriginal(uri: Uri): Uri | undefined | Promise<Uri | undefined>;
 }
+
+/** Every SnapshotHooks member: the compiler rejects a missing or an unknown key. */
+const SNAPSHOT_HOOK_KEYS: Record<keyof SnapshotHooks, true> = {
+  scmSnapshot: true,
+  treeSnapshot: true,
+  decorationFor: true,
+  statusBarSnapshot: true,
+  quickDiffOriginal: true,
+};
 
 export type TestHooks = {
   /**
@@ -88,7 +120,8 @@ export interface TestApi {
 
 /**
  * Owning modules assign their snapshot hook here when they register, e.g.
- * WP-1.9: `testHooks.scmSnapshot = () => ...`. Tests must read hooks through the
+ * WP-1.9: `testHooks.scmSnapshot = () => ...` and `testHooks.quickDiffOriginal = ...`;
+ * every SnapshotHooks member reaches api.hooks. Tests must read hooks through the
  * TestApi returned by activate() (api.hooks.scmSnapshot?.()), never import this
  * object: the running extension is the esbuild bundle, a different module copy.
  */
@@ -108,7 +141,7 @@ export function createTestApi(services: Services, seam: ServiceSeam): TestApi {
     resetServices: () => seam.resetServices(),
     setPrompts: (p: Prompts) => seam.setPrompts(p),
   } as TestHooks;
-  for (const key of ["scmSnapshot", "treeSnapshot", "decorationFor", "statusBarSnapshot"] as const) {
+  for (const key of Object.keys(SNAPSHOT_HOOK_KEYS) as (keyof SnapshotHooks)[]) {
     Object.defineProperty(hooks, key, { enumerable: true, get: () => testHooks[key] });
   }
   return { services, hooks };

@@ -454,7 +454,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.test.json --noEmit",
     "lint": "eslint . --max-warnings 0",
     "compile-tests": "tsc -p tsconfig.test.json",
-    "test:unit": "npm run compile-tests && mocha --ui bdd --timeout 20000 \"out/test/unit/**/*.test.js\"",
+    "test:unit": "npm run compile-tests && mocha --ui bdd --timeout 20000 --require out/test/helpers/vscodeStub.js \"out/test/unit/**/*.test.js\"",
     "pretest": "npm run compile && npm run compile-tests && node scripts/prepare-test-workspaces.mjs",
     "test": "vscode-test --label integration --label integration-stable --label integration-multi",
     "test:e2e": "npm run pretest && vscode-test --label e2e",

@@ -4,7 +4,8 @@
 //   2. An object property `shell` other than the literal `false` is banned in src/** and test/**.
 //   3. The literals 'credentials.json' and '.contexo/.sync' are banned in src/**
 //      (the E28 watcher glob '.contexo/*.json' passes).
-//   4. Importing 'vscode' is banned in test/unit/** (unit tests run in plain mocha).
+//   4. Importing 'vscode' is banned in test/unit/** (unit tests run in plain mocha; the src
+//      modules they load get test/helpers/vscodeStub.ts, registered by test:unit).
 //   5. Any vscode.proposed.*.d.ts file is an error (stable API only).
 import js from "@eslint/js";
 import { defineConfig, globalIgnores } from "eslint/config";
@@ -64,7 +65,7 @@ const sensitiveLiteralSyntax = [
 ];
 
 const VSCODE_MESSAGE =
-  "Unit tests run in plain mocha without VS Code: do not import 'vscode' here (use vscode-uri or test/helpers).";
+  "Unit tests run in plain mocha without VS Code: do not import 'vscode' here (use vscode-uri or test/helpers; src modules load against test/helpers/vscodeStub.ts).";
 const vscodeRuntimeSyntax = [
   { selector: "CallExpression[callee.name='require'][arguments.0.value='vscode']", message: VSCODE_MESSAGE },
   { selector: "ImportExpression[source.value='vscode']", message: VSCODE_MESSAGE },

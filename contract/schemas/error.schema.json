@@ -1,0 +1,794 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contexo.live/schemas/ctx/v1/error.schema.json",
+  "title": "stderr error envelope (ErrorEnvelope, ctx.error.v1): the last non-empty stderr line",
+  "description": "Contract v1 (contract/ctx-json-v1.md). Hand-maintained; $defs with the same name are identical in every contract/schemas file. Unknown properties are allowed (forward compatible).",
+  "type": "object",
+  "required": [
+    "schema",
+    "exit_code",
+    "error"
+  ],
+  "properties": {
+    "schema": {
+      "const": "ctx.error.v1"
+    },
+    "exit_code": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Equals the process exit code; pinned per known code (E2(1), E17)."
+    },
+    "error": {
+      "$ref": "#/$defs/errorBody"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "const": "internal"
+              }
+            },
+            "required": [
+              "code"
+            ]
+          }
+        },
+        "required": [
+          "error"
+        ]
+      },
+      "then": {
+        "properties": {
+          "exit_code": {
+            "const": 1
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "enum": [
+                  "usage",
+                  "invalid_path"
+                ]
+              }
+            },
+            "required": [
+              "code"
+            ]
+          }
+        },
+        "required": [
+          "error"
+        ]
+      },
+      "then": {
+        "properties": {
+          "exit_code": {
+            "const": 3
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "enum": [
+                  "not_authenticated",
+                  "auth_rejected",
+                  "forbidden"
+                ]
+              }
+            },
+            "required": [
+              "code"
+            ]
+          }
+        },
+        "required": [
+          "error"
+        ]
+      },
+      "then": {
+        "properties": {
+          "exit_code": {
+            "const": 4
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "enum": [
+                  "not_initialized",
+                  "repo_not_configured",
+                  "server_unresolved"
+                ]
+              }
+            },
+            "required": [
+              "code"
+            ]
+          }
+        },
+        "required": [
+          "error"
+        ]
+      },
+      "then": {
+        "properties": {
+          "exit_code": {
+            "const": 5
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "enum": [
+                  "conflict",
+                  "stale"
+                ]
+              }
+            },
+            "required": [
+              "code"
+            ]
+          }
+        },
+        "required": [
+          "error"
+        ]
+      },
+      "then": {
+        "properties": {
+          "exit_code": {
+            "const": 6
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "enum": [
+                  "network",
+                  "server_error",
+                  "rate_limited"
+                ]
+              }
+            },
+            "required": [
+              "code"
+            ]
+          }
+        },
+        "required": [
+          "error"
+        ]
+      },
+      "then": {
+        "properties": {
+          "exit_code": {
+            "const": 7
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "enum": [
+                  "repo_not_found",
+                  "page_not_found",
+                  "base_unavailable",
+                  "sha_not_found"
+                ]
+              }
+            },
+            "required": [
+              "code"
+            ]
+          }
+        },
+        "required": [
+          "error"
+        ]
+      },
+      "then": {
+        "properties": {
+          "exit_code": {
+            "const": 8
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "enum": [
+                  "distill_required",
+                  "not_resolvable"
+                ]
+              }
+            },
+            "required": [
+              "code"
+            ]
+          }
+        },
+        "required": [
+          "error"
+        ]
+      },
+      "then": {
+        "properties": {
+          "exit_code": {
+            "const": 9
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "enum": [
+                  "server_unsupported",
+                  "not_implemented"
+                ]
+              }
+            },
+            "required": [
+              "code"
+            ]
+          }
+        },
+        "required": [
+          "error"
+        ]
+      },
+      "then": {
+        "properties": {
+          "exit_code": {
+            "const": 10
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "const": "quota_exceeded"
+              }
+            },
+            "required": [
+              "code"
+            ]
+          }
+        },
+        "required": [
+          "error"
+        ]
+      },
+      "then": {
+        "properties": {
+          "exit_code": {
+            "const": 11
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "const": "busy"
+              }
+            },
+            "required": [
+              "code"
+            ]
+          }
+        },
+        "required": [
+          "error"
+        ]
+      },
+      "then": {
+        "properties": {
+          "exit_code": {
+            "const": 12
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "busyDetails": {
+      "type": "object",
+      "required": [
+        "pid",
+        "host",
+        "command",
+        "started_at"
+      ],
+      "properties": {
+        "pid": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "host": {
+          "type": "string"
+        },
+        "command": {
+          "type": "string"
+        },
+        "started_at": {
+          "$ref": "#/$defs/time"
+        }
+      }
+    },
+    "capability": {
+      "type": "string",
+      "description": "Open capability set (ctx and server): unknown values are allowed.",
+      "pattern": "^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$"
+    },
+    "captureSession": {
+      "type": "object",
+      "required": [
+        "session_id",
+        "turns",
+        "updated_at",
+        "fresh"
+      ],
+      "properties": {
+        "session_id": {
+          "type": "string"
+        },
+        "turns": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "updated_at": {
+          "$ref": "#/$defs/time"
+        },
+        "fresh": {
+          "type": "boolean"
+        }
+      }
+    },
+    "code": {
+      "type": "string",
+      "description": "Open code set (error, warning and note codes, skip reasons): unknown values are allowed.",
+      "pattern": "^[a-z][a-z0-9_]*$"
+    },
+    "conflictDetails": {
+      "type": "object",
+      "required": [
+        "paths"
+      ],
+      "properties": {
+        "paths": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/relPath"
+          }
+        }
+      }
+    },
+    "distillRequiredDetails": {
+      "type": "object",
+      "required": [
+        "pages",
+        "sessions",
+        "agent_prompt"
+      ],
+      "properties": {
+        "pages": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/relPath"
+          }
+        },
+        "sessions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/captureSession"
+          }
+        },
+        "agent_prompt": {
+          "type": "string"
+        }
+      }
+    },
+    "errorBody": {
+      "type": "object",
+      "description": "ErrorBody. retryable is pinned for the 24 known codes; details are typed per code when present.",
+      "required": [
+        "code",
+        "message",
+        "advice",
+        "retryable"
+      ],
+      "properties": {
+        "code": {
+          "$ref": "#/$defs/code"
+        },
+        "message": {
+          "type": "string"
+        },
+        "advice": {
+          "type": "array",
+          "description": "Shell commands that fix it; [] when none.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "retryable": {
+          "type": "boolean"
+        },
+        "http_status": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 599
+        },
+        "details": {
+          "type": "object"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "enum": [
+                  "network",
+                  "server_error",
+                  "rate_limited",
+                  "busy"
+                ]
+              }
+            },
+            "required": [
+              "code"
+            ]
+          },
+          "then": {
+            "properties": {
+              "retryable": {
+                "const": true
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "enum": [
+                  "internal",
+                  "usage",
+                  "invalid_path",
+                  "not_authenticated",
+                  "auth_rejected",
+                  "forbidden",
+                  "not_initialized",
+                  "repo_not_configured",
+                  "server_unresolved",
+                  "conflict",
+                  "stale",
+                  "repo_not_found",
+                  "page_not_found",
+                  "base_unavailable",
+                  "sha_not_found",
+                  "distill_required",
+                  "not_resolvable",
+                  "server_unsupported",
+                  "not_implemented",
+                  "quota_exceeded"
+                ]
+              }
+            },
+            "required": [
+              "code"
+            ]
+          },
+          "then": {
+            "properties": {
+              "retryable": {
+                "const": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "const": "distill_required"
+              }
+            },
+            "required": [
+              "code"
+            ]
+          },
+          "then": {
+            "properties": {
+              "details": {
+                "$ref": "#/$defs/distillRequiredDetails"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "const": "conflict"
+              }
+            },
+            "required": [
+              "code"
+            ]
+          },
+          "then": {
+            "properties": {
+              "details": {
+                "$ref": "#/$defs/conflictDetails"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "const": "stale"
+              }
+            },
+            "required": [
+              "code"
+            ]
+          },
+          "then": {
+            "properties": {
+              "details": {
+                "$ref": "#/$defs/staleDetails"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "const": "not_resolvable"
+              }
+            },
+            "required": [
+              "code"
+            ]
+          },
+          "then": {
+            "properties": {
+              "details": {
+                "$ref": "#/$defs/notResolvableDetails"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "const": "server_unsupported"
+              }
+            },
+            "required": [
+              "code"
+            ]
+          },
+          "then": {
+            "properties": {
+              "details": {
+                "$ref": "#/$defs/serverUnsupportedDetails"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "const": "busy"
+              }
+            },
+            "required": [
+              "code"
+            ]
+          },
+          "then": {
+            "properties": {
+              "details": {
+                "$ref": "#/$defs/busyDetails"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "const": "quota_exceeded"
+              }
+            },
+            "required": [
+              "code"
+            ]
+          },
+          "then": {
+            "properties": {
+              "details": {
+                "$ref": "#/$defs/quotaDetails"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "notResolvableDetails": {
+      "type": "object",
+      "required": [
+        "path",
+        "state",
+        "strategy"
+      ],
+      "properties": {
+        "path": {
+          "$ref": "#/$defs/relPath"
+        },
+        "state": {
+          "$ref": "#/$defs/pageState"
+        },
+        "strategy": {
+          "$ref": "#/$defs/resolveStrategy"
+        }
+      }
+    },
+    "pageState": {
+      "type": "string",
+      "description": "CLOSED v1 enum: a new value is contract 2.",
+      "enum": [
+        "unchanged",
+        "modified",
+        "new",
+        "incoming",
+        "incoming_new",
+        "conflict",
+        "deleted_local",
+        "invalid",
+        "unverified"
+      ]
+    },
+    "quotaDetails": {
+      "type": "object",
+      "required": [
+        "quota_code",
+        "limit"
+      ],
+      "properties": {
+        "quota_code": {
+          "type": "string"
+        },
+        "limit": {
+          "type": "integer"
+        },
+        "upgrade_url": {
+          "type": "string"
+        }
+      }
+    },
+    "relPath": {
+      "type": "string",
+      "description": "'/'-separated path relative to <root>/.contexo/.",
+      "pattern": "^[^/\\\\]"
+    },
+    "resolveStrategy": {
+      "type": "string",
+      "enum": [
+        "ours",
+        "theirs"
+      ]
+    },
+    "serverUnsupportedDetails": {
+      "type": "object",
+      "required": [
+        "missing"
+      ],
+      "properties": {
+        "missing": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/capability"
+          }
+        }
+      }
+    },
+    "sha": {
+      "type": "string",
+      "description": "Full 40-hex commit sha.",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "staleDetails": {
+      "type": "object",
+      "required": [
+        "path",
+        "expected_sha",
+        "server_sha"
+      ],
+      "properties": {
+        "path": {
+          "$ref": "#/$defs/relPath"
+        },
+        "expected_sha": {
+          "$ref": "#/$defs/sha"
+        },
+        "server_sha": {
+          "$ref": "#/$defs/sha"
+        }
+      }
+    },
+    "time": {
+      "type": "string",
+      "description": "RFC 3339, UTC, whole seconds (E16).",
+      "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\dZ$"
+    }
+  }
+}

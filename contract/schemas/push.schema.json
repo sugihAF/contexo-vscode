@@ -1,0 +1,262 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contexo.live/schemas/ctx/v1/push.schema.json",
+  "title": "ctx push --json (PushDoc, ctx.push.v1)",
+  "description": "Contract v1 (contract/ctx-json-v1.md). Hand-maintained; $defs with the same name are identical in every contract/schemas file. Unknown properties are allowed (forward compatible).",
+  "type": "object",
+  "required": [
+    "schema",
+    "dry_run",
+    "message",
+    "server_url",
+    "repo_id",
+    "pushed",
+    "conflicts",
+    "skipped",
+    "distill",
+    "warnings"
+  ],
+  "properties": {
+    "schema": {
+      "const": "ctx.push.v1"
+    },
+    "dry_run": {
+      "type": "boolean"
+    },
+    "message": {
+      "type": "string"
+    },
+    "server_url": {
+      "type": "string"
+    },
+    "repo_id": {
+      "type": "string"
+    },
+    "new_head": {
+      "$ref": "#/$defs/sha"
+    },
+    "pushed": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/pushedPage"
+      }
+    },
+    "conflicts": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/pushConflict"
+      }
+    },
+    "skipped": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/skippedPage"
+      }
+    },
+    "distill": {
+      "$ref": "#/$defs/distillCheck"
+    },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/warning"
+      }
+    }
+  },
+  "if": {
+    "properties": {
+      "dry_run": {
+        "const": true
+      }
+    },
+    "required": [
+      "dry_run"
+    ]
+  },
+  "then": {
+    "description": "Dry run: new_head absent, pushed lists {path, kind} without sha, conflicts [].",
+    "not": {
+      "required": [
+        "new_head"
+      ]
+    },
+    "properties": {
+      "pushed": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "not": {
+            "required": [
+              "sha"
+            ]
+          }
+        }
+      },
+      "conflicts": {
+        "type": "array",
+        "maxItems": 0
+      }
+    }
+  },
+  "$defs": {
+    "code": {
+      "type": "string",
+      "description": "Open code set (error, warning and note codes, skip reasons): unknown values are allowed.",
+      "pattern": "^[a-z][a-z0-9_]*$"
+    },
+    "conflictKind": {
+      "type": "string",
+      "enum": [
+        "both_modified",
+        "both_added"
+      ]
+    },
+    "distillCheck": {
+      "type": "object",
+      "required": [
+        "required",
+        "bypassed"
+      ],
+      "properties": {
+        "required": {
+          "type": "boolean"
+        },
+        "bypassed": {
+          "type": "boolean"
+        }
+      }
+    },
+    "pageState": {
+      "type": "string",
+      "description": "CLOSED v1 enum: a new value is contract 2.",
+      "enum": [
+        "unchanged",
+        "modified",
+        "new",
+        "incoming",
+        "incoming_new",
+        "conflict",
+        "deleted_local",
+        "invalid",
+        "unverified"
+      ]
+    },
+    "pushConflict": {
+      "type": "object",
+      "required": [
+        "path",
+        "kind",
+        "server_sha"
+      ],
+      "properties": {
+        "path": {
+          "$ref": "#/$defs/relPath"
+        },
+        "kind": {
+          "$ref": "#/$defs/conflictKind"
+        },
+        "base_sha": {
+          "$ref": "#/$defs/sha"
+        },
+        "server_sha": {
+          "$ref": "#/$defs/sha"
+        }
+      },
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "both_added"
+          }
+        },
+        "required": [
+          "kind"
+        ]
+      },
+      "then": {
+        "not": {
+          "required": [
+            "base_sha"
+          ]
+        }
+      }
+    },
+    "pushedPage": {
+      "type": "object",
+      "required": [
+        "path",
+        "kind"
+      ],
+      "properties": {
+        "path": {
+          "$ref": "#/$defs/relPath"
+        },
+        "kind": {
+          "$ref": "#/$defs/writeKind"
+        },
+        "sha": {
+          "$ref": "#/$defs/sha"
+        }
+      }
+    },
+    "relPath": {
+      "type": "string",
+      "description": "'/'-separated path relative to <root>/.contexo/.",
+      "pattern": "^[^/\\\\]"
+    },
+    "sha": {
+      "type": "string",
+      "description": "Full 40-hex commit sha.",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "skippedPage": {
+      "type": "object",
+      "required": [
+        "path",
+        "reason"
+      ],
+      "properties": {
+        "path": {
+          "$ref": "#/$defs/relPath"
+        },
+        "state": {
+          "$ref": "#/$defs/pageState"
+        },
+        "reason": {
+          "$ref": "#/$defs/code"
+        },
+        "server_sha": {
+          "$ref": "#/$defs/sha"
+        }
+      }
+    },
+    "warning": {
+      "type": "object",
+      "required": [
+        "code",
+        "message",
+        "paths"
+      ],
+      "properties": {
+        "code": {
+          "$ref": "#/$defs/code"
+        },
+        "message": {
+          "type": "string"
+        },
+        "paths": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/relPath"
+          }
+        }
+      }
+    },
+    "writeKind": {
+      "type": "string",
+      "enum": [
+        "create",
+        "update"
+      ]
+    }
+  }
+}

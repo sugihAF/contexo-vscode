@@ -1,0 +1,7 @@
+{
+  "rules": [
+    {"match":["version","--short"],"stdout":"0.6.6\n"},
+    {"match":["version","--json"],"exit":1,"stderrFile":"unknown_flag.stderr"}
+  ],
+  "default": {"exit":1,"stderrFile":"unknown_flag.stderr"}
+}

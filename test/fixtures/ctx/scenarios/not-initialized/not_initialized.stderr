@@ -1,0 +1,1 @@
+{"schema":"ctx.error.v1","exit_code":5,"error":{"code":"not_initialized","message":"no .contexo/ directory in /fixture-root","advice":["ctx init"],"retryable":false}}

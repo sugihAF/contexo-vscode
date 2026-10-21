@@ -1,0 +1,163 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contexo.live/schemas/ctx/v1/resolve.schema.json",
+  "title": "ctx resolve <path> --ours|--theirs --json (ResolveDoc, ctx.resolve.v1)",
+  "description": "Contract v1 (contract/ctx-json-v1.md). Hand-maintained; $defs with the same name are identical in every contract/schemas file. Unknown properties are allowed (forward compatible).",
+  "type": "object",
+  "required": [
+    "schema",
+    "path",
+    "strategy",
+    "previous_state",
+    "state",
+    "base_sha",
+    "file_written",
+    "warnings"
+  ],
+  "properties": {
+    "schema": {
+      "const": "ctx.resolve.v1"
+    },
+    "path": {
+      "$ref": "#/$defs/relPath"
+    },
+    "strategy": {
+      "$ref": "#/$defs/resolveStrategy"
+    },
+    "previous_state": {
+      "$ref": "#/$defs/pageState"
+    },
+    "state": {
+      "$ref": "#/$defs/pageState"
+    },
+    "base_sha": {
+      "$ref": "#/$defs/sha"
+    },
+    "file_written": {
+      "type": "boolean"
+    },
+    "backup_file": {
+      "$ref": "#/$defs/relPath"
+    },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/warning"
+      }
+    }
+  },
+  "allOf": [
+    {
+      "description": "--ours keeps the working file: it ends modified or unchanged, never writes, never backs up.",
+      "if": {
+        "properties": {
+          "strategy": {
+            "const": "ours"
+          }
+        },
+        "required": [
+          "strategy"
+        ]
+      },
+      "then": {
+        "properties": {
+          "state": {
+            "enum": [
+              "modified",
+              "unchanged"
+            ]
+          },
+          "file_written": {
+            "const": false
+          }
+        },
+        "not": {
+          "required": [
+            "backup_file"
+          ]
+        }
+      }
+    },
+    {
+      "description": "--theirs always ends unchanged.",
+      "if": {
+        "properties": {
+          "strategy": {
+            "const": "theirs"
+          }
+        },
+        "required": [
+          "strategy"
+        ]
+      },
+      "then": {
+        "properties": {
+          "state": {
+            "const": "unchanged"
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "code": {
+      "type": "string",
+      "description": "Open code set (error, warning and note codes, skip reasons): unknown values are allowed.",
+      "pattern": "^[a-z][a-z0-9_]*$"
+    },
+    "pageState": {
+      "type": "string",
+      "description": "CLOSED v1 enum: a new value is contract 2.",
+      "enum": [
+        "unchanged",
+        "modified",
+        "new",
+        "incoming",
+        "incoming_new",
+        "conflict",
+        "deleted_local",
+        "invalid",
+        "unverified"
+      ]
+    },
+    "relPath": {
+      "type": "string",
+      "description": "'/'-separated path relative to <root>/.contexo/.",
+      "pattern": "^[^/\\\\]"
+    },
+    "resolveStrategy": {
+      "type": "string",
+      "enum": [
+        "ours",
+        "theirs"
+      ]
+    },
+    "sha": {
+      "type": "string",
+      "description": "Full 40-hex commit sha.",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "warning": {
+      "type": "object",
+      "required": [
+        "code",
+        "message",
+        "paths"
+      ],
+      "properties": {
+        "code": {
+          "$ref": "#/$defs/code"
+        },
+        "message": {
+          "type": "string"
+        },
+        "paths": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/relPath"
+          }
+        }
+      }
+    }
+  }
+}

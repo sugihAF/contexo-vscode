@@ -1,0 +1,988 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contexo.live/schemas/ctx/v1/status.schema.json",
+  "title": "ctx status --json [--offline] (StatusDoc, ctx.status.v1)",
+  "description": "Contract v1 (contract/ctx-json-v1.md). Hand-maintained; $defs with the same name are identical in every contract/schemas file. Unknown properties are allowed (forward compatible).",
+  "type": "object",
+  "required": [
+    "schema",
+    "generated_at",
+    "offline",
+    "root",
+    "contexo_dir",
+    "project",
+    "server",
+    "auth",
+    "remote",
+    "counts",
+    "pages",
+    "captures",
+    "warnings"
+  ],
+  "properties": {
+    "schema": {
+      "const": "ctx.status.v1"
+    },
+    "generated_at": {
+      "$ref": "#/$defs/time"
+    },
+    "offline": {
+      "type": "boolean"
+    },
+    "root": {
+      "type": "string",
+      "description": "Absolute project root, native separators."
+    },
+    "contexo_dir": {
+      "type": "string",
+      "description": "Absolute .contexo dir, native separators."
+    },
+    "project": {
+      "$ref": "#/$defs/projectInfo"
+    },
+    "server": {
+      "$ref": "#/$defs/serverInfo"
+    },
+    "auth": {
+      "$ref": "#/$defs/authInfo"
+    },
+    "remote": {
+      "$ref": "#/$defs/remoteInfo"
+    },
+    "counts": {
+      "$ref": "#/$defs/stateCounts"
+    },
+    "pages": {
+      "type": "array",
+      "description": "Sorted by path (byte order).",
+      "items": {
+        "$ref": "#/$defs/pageEntry"
+      }
+    },
+    "captures": {
+      "$ref": "#/$defs/captureInfo"
+    },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/warning"
+      }
+    }
+  },
+  "$defs": {
+    "authInfo": {
+      "type": "object",
+      "required": [
+        "state"
+      ],
+      "properties": {
+        "state": {
+          "$ref": "#/$defs/authState"
+        },
+        "credentials_source": {
+          "type": "string",
+          "description": "'project' | 'global'"
+        },
+        "token_kind": {
+          "type": "string",
+          "description": "'pat' | 'session' | 'legacy' | 'invite_key'"
+        },
+        "user_name": {
+          "type": "string"
+        },
+        "user_email": {
+          "type": "string"
+        }
+      }
+    },
+    "authState": {
+      "type": "string",
+      "enum": [
+        "authenticated",
+        "unchecked",
+        "not_authenticated",
+        "rejected"
+      ]
+    },
+    "baseSide": {
+      "type": "object",
+      "required": [
+        "sha",
+        "stale"
+      ],
+      "properties": {
+        "sha": {
+          "$ref": "#/$defs/sha"
+        },
+        "hash": {
+          "$ref": "#/$defs/hash"
+        },
+        "synced_at": {
+          "$ref": "#/$defs/time"
+        },
+        "stale": {
+          "type": "boolean"
+        }
+      }
+    },
+    "busyDetails": {
+      "type": "object",
+      "required": [
+        "pid",
+        "host",
+        "command",
+        "started_at"
+      ],
+      "properties": {
+        "pid": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "host": {
+          "type": "string"
+        },
+        "command": {
+          "type": "string"
+        },
+        "started_at": {
+          "$ref": "#/$defs/time"
+        }
+      }
+    },
+    "capability": {
+      "type": "string",
+      "description": "Open capability set (ctx and server): unknown values are allowed.",
+      "pattern": "^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$"
+    },
+    "captureInfo": {
+      "type": "object",
+      "required": [
+        "pending",
+        "fresh",
+        "blocks_push",
+        "sessions"
+      ],
+      "properties": {
+        "pending": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "fresh": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "blocks_push": {
+          "type": "boolean"
+        },
+        "sessions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/captureSession"
+          }
+        }
+      }
+    },
+    "captureSession": {
+      "type": "object",
+      "required": [
+        "session_id",
+        "turns",
+        "updated_at",
+        "fresh"
+      ],
+      "properties": {
+        "session_id": {
+          "type": "string"
+        },
+        "turns": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "updated_at": {
+          "$ref": "#/$defs/time"
+        },
+        "fresh": {
+          "type": "boolean"
+        }
+      }
+    },
+    "code": {
+      "type": "string",
+      "description": "Open code set (error, warning and note codes, skip reasons): unknown values are allowed.",
+      "pattern": "^[a-z][a-z0-9_]*$"
+    },
+    "conflictDetails": {
+      "type": "object",
+      "required": [
+        "paths"
+      ],
+      "properties": {
+        "paths": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/relPath"
+          }
+        }
+      }
+    },
+    "conflictKind": {
+      "type": "string",
+      "enum": [
+        "both_modified",
+        "both_added"
+      ]
+    },
+    "distillRequiredDetails": {
+      "type": "object",
+      "required": [
+        "pages",
+        "sessions",
+        "agent_prompt"
+      ],
+      "properties": {
+        "pages": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/relPath"
+          }
+        },
+        "sessions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/captureSession"
+          }
+        },
+        "agent_prompt": {
+          "type": "string"
+        }
+      }
+    },
+    "errorBody": {
+      "type": "object",
+      "description": "ErrorBody. retryable is pinned for the 24 known codes; details are typed per code when present.",
+      "required": [
+        "code",
+        "message",
+        "advice",
+        "retryable"
+      ],
+      "properties": {
+        "code": {
+          "$ref": "#/$defs/code"
+        },
+        "message": {
+          "type": "string"
+        },
+        "advice": {
+          "type": "array",
+          "description": "Shell commands that fix it; [] when none.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "retryable": {
+          "type": "boolean"
+        },
+        "http_status": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 599
+        },
+        "details": {
+          "type": "object"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "enum": [
+                  "network",
+                  "server_error",
+                  "rate_limited",
+                  "busy"
+                ]
+              }
+            },
+            "required": [
+              "code"
+            ]
+          },
+          "then": {
+            "properties": {
+              "retryable": {
+                "const": true
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "enum": [
+                  "internal",
+                  "usage",
+                  "invalid_path",
+                  "not_authenticated",
+                  "auth_rejected",
+                  "forbidden",
+                  "not_initialized",
+                  "repo_not_configured",
+                  "server_unresolved",
+                  "conflict",
+                  "stale",
+                  "repo_not_found",
+                  "page_not_found",
+                  "base_unavailable",
+                  "sha_not_found",
+                  "distill_required",
+                  "not_resolvable",
+                  "server_unsupported",
+                  "not_implemented",
+                  "quota_exceeded"
+                ]
+              }
+            },
+            "required": [
+              "code"
+            ]
+          },
+          "then": {
+            "properties": {
+              "retryable": {
+                "const": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "const": "distill_required"
+              }
+            },
+            "required": [
+              "code"
+            ]
+          },
+          "then": {
+            "properties": {
+              "details": {
+                "$ref": "#/$defs/distillRequiredDetails"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "const": "conflict"
+              }
+            },
+            "required": [
+              "code"
+            ]
+          },
+          "then": {
+            "properties": {
+              "details": {
+                "$ref": "#/$defs/conflictDetails"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "const": "stale"
+              }
+            },
+            "required": [
+              "code"
+            ]
+          },
+          "then": {
+            "properties": {
+              "details": {
+                "$ref": "#/$defs/staleDetails"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "const": "not_resolvable"
+              }
+            },
+            "required": [
+              "code"
+            ]
+          },
+          "then": {
+            "properties": {
+              "details": {
+                "$ref": "#/$defs/notResolvableDetails"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "const": "server_unsupported"
+              }
+            },
+            "required": [
+              "code"
+            ]
+          },
+          "then": {
+            "properties": {
+              "details": {
+                "$ref": "#/$defs/serverUnsupportedDetails"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "const": "busy"
+              }
+            },
+            "required": [
+              "code"
+            ]
+          },
+          "then": {
+            "properties": {
+              "details": {
+                "$ref": "#/$defs/busyDetails"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "const": "quota_exceeded"
+              }
+            },
+            "required": [
+              "code"
+            ]
+          },
+          "then": {
+            "properties": {
+              "details": {
+                "$ref": "#/$defs/quotaDetails"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "hash": {
+      "type": "string",
+      "description": "Content hash of normalized bytes, or raw bytes when they do not normalize (E6).",
+      "pattern": "^(sha256|raw-sha256):[0-9a-f]{64}$"
+    },
+    "invalidInfo": {
+      "type": "object",
+      "required": [
+        "stage",
+        "message"
+      ],
+      "properties": {
+        "stage": {
+          "$ref": "#/$defs/invalidStage"
+        },
+        "message": {
+          "type": "string"
+        },
+        "expected_path": {
+          "$ref": "#/$defs/relPath"
+        }
+      }
+    },
+    "invalidStage": {
+      "type": "string",
+      "enum": [
+        "parse",
+        "validate",
+        "path_mismatch"
+      ]
+    },
+    "localSide": {
+      "type": "object",
+      "required": [
+        "file"
+      ],
+      "properties": {
+        "file": {
+          "$ref": "#/$defs/relPath"
+        },
+        "hash": {
+          "$ref": "#/$defs/hash"
+        }
+      }
+    },
+    "notResolvableDetails": {
+      "type": "object",
+      "required": [
+        "path",
+        "state",
+        "strategy"
+      ],
+      "properties": {
+        "path": {
+          "$ref": "#/$defs/relPath"
+        },
+        "state": {
+          "$ref": "#/$defs/pageState"
+        },
+        "strategy": {
+          "$ref": "#/$defs/resolveStrategy"
+        }
+      }
+    },
+    "pageEntry": {
+      "type": "object",
+      "required": [
+        "path",
+        "state",
+        "tags",
+        "notes"
+      ],
+      "properties": {
+        "path": {
+          "$ref": "#/$defs/relPath"
+        },
+        "state": {
+          "$ref": "#/$defs/pageState"
+        },
+        "conflict_kind": {
+          "$ref": "#/$defs/conflictKind"
+        },
+        "type": {
+          "type": "string",
+          "description": "'concept' | 'entity' | 'analysis' | 'source' | other"
+        },
+        "slug": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "author": {
+          "type": "string"
+        },
+        "agent": {
+          "type": "string"
+        },
+        "updated": {
+          "$ref": "#/$defs/time"
+        },
+        "reasoning_summary": {
+          "type": "string"
+        },
+        "local": {
+          "$ref": "#/$defs/localSide"
+        },
+        "base": {
+          "$ref": "#/$defs/baseSide"
+        },
+        "remote": {
+          "$ref": "#/$defs/remoteSide"
+        },
+        "invalid": {
+          "$ref": "#/$defs/invalidInfo"
+        },
+        "notes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/code"
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "state": {
+                "const": "conflict"
+              }
+            },
+            "required": [
+              "state"
+            ]
+          },
+          "then": {
+            "required": [
+              "conflict_kind"
+            ]
+          },
+          "else": {
+            "not": {
+              "required": [
+                "conflict_kind"
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "state": {
+                "const": "invalid"
+              }
+            },
+            "required": [
+              "state"
+            ]
+          },
+          "then": {
+            "required": [
+              "invalid"
+            ]
+          },
+          "else": {
+            "not": {
+              "required": [
+                "invalid"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "pageState": {
+      "type": "string",
+      "description": "CLOSED v1 enum: a new value is contract 2.",
+      "enum": [
+        "unchanged",
+        "modified",
+        "new",
+        "incoming",
+        "incoming_new",
+        "conflict",
+        "deleted_local",
+        "invalid",
+        "unverified"
+      ]
+    },
+    "projectInfo": {
+      "type": "object",
+      "required": [
+        "dashboard_url"
+      ],
+      "properties": {
+        "repo_id": {
+          "type": "string"
+        },
+        "config_server_url": {
+          "type": "string"
+        },
+        "dashboard_url": {
+          "type": "string",
+          "description": "Always present; '' when no dashboard URL is configured (E23)."
+        },
+        "dashboard_page_url_template": {
+          "type": "string",
+          "description": "'{path}' is replaced by a page path; absent when dashboard_url is ''.",
+          "pattern": "\\{path\\}"
+        },
+        "last_pull_sha": {
+          "$ref": "#/$defs/sha"
+        }
+      },
+      "if": {
+        "properties": {
+          "dashboard_url": {
+            "const": ""
+          }
+        },
+        "required": [
+          "dashboard_url"
+        ]
+      },
+      "then": {
+        "not": {
+          "required": [
+            "dashboard_page_url_template"
+          ]
+        }
+      }
+    },
+    "quotaDetails": {
+      "type": "object",
+      "required": [
+        "quota_code",
+        "limit"
+      ],
+      "properties": {
+        "quota_code": {
+          "type": "string"
+        },
+        "limit": {
+          "type": "integer"
+        },
+        "upgrade_url": {
+          "type": "string"
+        }
+      }
+    },
+    "relPath": {
+      "type": "string",
+      "description": "'/'-separated path relative to <root>/.contexo/.",
+      "pattern": "^[^/\\\\]"
+    },
+    "remoteInfo": {
+      "type": "object",
+      "required": [
+        "source",
+        "page_count"
+      ],
+      "properties": {
+        "source": {
+          "$ref": "#/$defs/remoteSource"
+        },
+        "fetched_at": {
+          "$ref": "#/$defs/time"
+        },
+        "repo_exists": {
+          "type": "boolean"
+        },
+        "head": {
+          "$ref": "#/$defs/sha"
+        },
+        "page_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "error": {
+          "$ref": "#/$defs/errorBody"
+        }
+      }
+    },
+    "remoteSide": {
+      "type": "object",
+      "required": [
+        "sha"
+      ],
+      "properties": {
+        "sha": {
+          "$ref": "#/$defs/sha"
+        },
+        "author": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        },
+        "time": {
+          "$ref": "#/$defs/time"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "remoteSource": {
+      "type": "string",
+      "description": "'cache' is reserved: v1 ctx never emits it (E8).",
+      "enum": [
+        "live",
+        "cache",
+        "none"
+      ]
+    },
+    "resolveStrategy": {
+      "type": "string",
+      "enum": [
+        "ours",
+        "theirs"
+      ]
+    },
+    "serverInfo": {
+      "type": "object",
+      "required": [
+        "capabilities_known",
+        "capabilities"
+      ],
+      "properties": {
+        "url": {
+          "type": "string"
+        },
+        "url_source": {
+          "$ref": "#/$defs/urlSource"
+        },
+        "version": {
+          "type": "string"
+        },
+        "capabilities_known": {
+          "type": "boolean"
+        },
+        "capabilities": {
+          "type": "array",
+          "description": "X-Contexo-Capabilities; v1 servers send pages.at, push.expect_absent, write.path_sha ('pages.etag' is reserved, E13).",
+          "items": {
+            "$ref": "#/$defs/capability"
+          }
+        }
+      }
+    },
+    "serverUnsupportedDetails": {
+      "type": "object",
+      "required": [
+        "missing"
+      ],
+      "properties": {
+        "missing": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/capability"
+          }
+        }
+      }
+    },
+    "sha": {
+      "type": "string",
+      "description": "Full 40-hex commit sha.",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "staleDetails": {
+      "type": "object",
+      "required": [
+        "path",
+        "expected_sha",
+        "server_sha"
+      ],
+      "properties": {
+        "path": {
+          "$ref": "#/$defs/relPath"
+        },
+        "expected_sha": {
+          "$ref": "#/$defs/sha"
+        },
+        "server_sha": {
+          "$ref": "#/$defs/sha"
+        }
+      }
+    },
+    "stateCounts": {
+      "type": "object",
+      "description": "Per-state counters; ahead = modified + new, behind = incoming + incoming_new.",
+      "required": [
+        "unchanged",
+        "modified",
+        "new",
+        "incoming",
+        "incoming_new",
+        "conflict",
+        "deleted_local",
+        "invalid",
+        "unverified",
+        "ahead",
+        "behind"
+      ],
+      "properties": {
+        "unchanged": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "modified": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "new": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "incoming": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "incoming_new": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "conflict": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "deleted_local": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "invalid": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "unverified": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "ahead": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "behind": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "time": {
+      "type": "string",
+      "description": "RFC 3339, UTC, whole seconds (E16).",
+      "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\dZ$"
+    },
+    "urlSource": {
+      "type": "string",
+      "enum": [
+        "credentials",
+        "config",
+        "default"
+      ]
+    },
+    "warning": {
+      "type": "object",
+      "required": [
+        "code",
+        "message",
+        "paths"
+      ],
+      "properties": {
+        "code": {
+          "$ref": "#/$defs/code"
+        },
+        "message": {
+          "type": "string"
+        },
+        "paths": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/relPath"
+          }
+        }
+      }
+    }
+  }
+}

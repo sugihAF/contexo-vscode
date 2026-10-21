@@ -1,0 +1,14 @@
+{
+  "rules": [
+    {"match":["status","--json"],"unless":["--offline"],"stdoutFile":"status.json"},
+    {"match":["status","--offline"],"stdoutFile":"../mixed-offline/status.json"},
+    {"match":["show","wiki/concepts/auth-flow.md","--at","base"],"stdoutFile":"show/auth-flow.base.md"},
+    {"match":["show","wiki/concepts/auth-flow.md","--at","server"],"stdoutFile":"show/auth-flow.server.md"},
+    {"match":["show","wiki/concepts/rate-limits.md","--at","base"],"stdoutFile":"show/rate-limits.base.md"},
+    {"match":["show","wiki/concepts/rate-limits.md","--at","server"],"stdoutFile":"show/rate-limits.server.md"},
+    {"match":["show","wiki/concepts/retry-policy.md","--at","base"],"stdoutFile":"show/retry-policy.base.md"},
+    {"match":["show","wiki/concepts/retry-policy.md","--at","server"],"stdoutFile":"show/retry-policy.server.md"},
+    {"match":["show","--at","base"],"exit":8,"stderrFile":"base_unavailable.stderr"},
+    {"match":["show"],"exit":8,"stderrFile":"page_not_found.stderr"}
+  ]
+}

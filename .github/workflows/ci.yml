@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: build (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      # Fixtures are byte-exact (LF): keep the Windows runner from converting them to CRLF.
+      - name: Keep LF line endings
+        run: git config --global core.autocrlf false
+
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm run lint
+
+      - run: npm run typecheck
+
+      - run: npm run test:unit
+
+      - name: Integration tests (VS Code host, Linux)
+        if: runner.os == 'Linux'
+        run: xvfb-run -a npm test
+
+      - name: Integration tests (VS Code host)
+        if: runner.os != 'Linux'
+        run: npm test
+
+      - run: npm run check:manifest
+
+      - run: npm run package
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: contexo-vsix-${{ matrix.os }}
+          path: dist/*.vsix
+          if-no-files-found: error

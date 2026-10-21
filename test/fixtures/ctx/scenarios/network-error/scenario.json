@@ -1,0 +1,14 @@
+{
+  "rules": [
+    {"match":["status","--json"],"unless":["--offline"],"stdoutFile":"status.json"},
+    {"match":["status","--offline"],"stdoutFile":"../mixed-offline/status.json"},
+    {"match":["show","wiki/concepts/auth-flow.md","--at","base"],"stdoutFile":"../mixed/show/auth-flow.base.md"},
+    {"match":["show","wiki/concepts/rate-limits.md","--at","base"],"stdoutFile":"../mixed/show/rate-limits.base.md"},
+    {"match":["show","wiki/concepts/retry-policy.md","--at","base"],"stdoutFile":"../mixed/show/retry-policy.base.md"},
+    {"match":["show","--at","base"],"exit":8,"stderrFile":"../mixed/base_unavailable.stderr"},
+    {"match":["show"],"exit":7,"stderrFile":"network.stderr"},
+    {"match":["resolve"],"exit":7,"stderrFile":"network.stderr"},
+    {"match":["push"],"exit":7,"stderrFile":"network.stderr"},
+    {"match":["pull"],"exit":7,"stderrFile":"network.stderr"}
+  ]
+}

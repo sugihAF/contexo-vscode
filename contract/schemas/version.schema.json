@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contexo.live/schemas/ctx/v1/version.schema.json",
+  "title": "ctx version --json (VersionDoc, ctx.version.v1)",
+  "description": "Contract v1 (contract/ctx-json-v1.md). Hand-maintained; $defs with the same name are identical in every contract/schemas file. Unknown properties are allowed (forward compatible).",
+  "type": "object",
+  "required": [
+    "schema",
+    "contract_version",
+    "version",
+    "commit",
+    "date",
+    "dev_build",
+    "os",
+    "arch",
+    "capabilities"
+  ],
+  "properties": {
+    "schema": {
+      "const": "ctx.version.v1"
+    },
+    "contract_version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Integer major version; > 1 must still validate (E32)."
+    },
+    "version": {
+      "type": "string",
+      "description": "'0.7.0' or 'dev'"
+    },
+    "commit": {
+      "type": "string"
+    },
+    "date": {
+      "type": "string"
+    },
+    "dev_build": {
+      "type": "boolean"
+    },
+    "os": {
+      "type": "string"
+    },
+    "arch": {
+      "type": "string"
+    },
+    "capabilities": {
+      "type": "array",
+      "description": "Registered capabilities in contract order (E19); unknown values allowed.",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/capability"
+      }
+    }
+  },
+  "$defs": {
+    "capability": {
+      "type": "string",
+      "description": "Open capability set (ctx and server): unknown values are allowed.",
+      "pattern": "^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$"
+    }
+  }
+}

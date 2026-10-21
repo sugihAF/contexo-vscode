@@ -1,0 +1,22 @@
+# Only package.json, README.md, CHANGELOG.md, LICENSE, dist/extension.js and media/ ship in the VSIX.
+src/**
+test/**
+contract/**
+scripts/**
+out/**
+.vscode-test/**
+node_modules/**
+**/*.map
+dist/*.vsix
+*.vsix
+**/.fake-ctx/**
+tsconfig*.json
+.github/**
+.vscode/**
+**/*.ts
+esbuild.mjs
+eslint.config.mjs
+.vscode-test.mjs
+.nvmrc
+.editorconfig
+.gitignore

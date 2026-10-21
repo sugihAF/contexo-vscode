@@ -1,0 +1,9 @@
+{
+  "rules": [
+    {"match":["status","--json"],"unless":["--offline"],"stdoutFile":"../mixed/status.json"},
+    {"match":["status","--offline"],"stdoutFile":"../mixed-offline/status.json"},
+    {"match":["push"],"exit":12,"stderrFile":"busy.stderr"},
+    {"match":["pull"],"exit":12,"stderrFile":"busy.stderr"},
+    {"match":["resolve"],"exit":12,"stderrFile":"busy.stderr"}
+  ]
+}

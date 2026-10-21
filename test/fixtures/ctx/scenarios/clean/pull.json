@@ -1,0 +1,11 @@
+{
+  "schema": "ctx.pull.v1",
+  "server_url": "http://127.0.0.1:9",
+  "repo_id": "fixture-repo",
+  "head": "1342310edc4c491792c9fe1530aad41c0d8e5b7b",
+  "written": [],
+  "adopted": [],
+  "skipped": [],
+  "reindexed": false,
+  "warnings": []
+}

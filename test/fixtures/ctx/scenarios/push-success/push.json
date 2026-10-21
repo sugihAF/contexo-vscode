@@ -1,0 +1,49 @@
+{
+  "schema": "ctx.push.v1",
+  "dry_run": false,
+  "message": "ctx push (2 pages)",
+  "server_url": "http://127.0.0.1:9",
+  "repo_id": "fixture-repo",
+  "new_head": "1342310edc4c491792c9fe1530aad41c0d8e5b7b",
+  "pushed": [
+    {
+      "path": "wiki/analyses/sync-model.md",
+      "kind": "create",
+      "sha": "1342310edc4c491792c9fe1530aad41c0d8e5b7b"
+    },
+    {
+      "path": "wiki/concepts/auth-flow.md",
+      "kind": "update",
+      "sha": "1342310edc4c491792c9fe1530aad41c0d8e5b7b"
+    }
+  ],
+  "conflicts": [],
+  "skipped": [
+    {
+      "path": "wiki/concepts/broken.md",
+      "state": "invalid",
+      "reason": "invalid"
+    },
+    {
+      "path": "wiki/concepts/legacy-sync.md",
+      "state": "unverified",
+      "reason": "unverified"
+    },
+    {
+      "path": "wiki/concepts/old-name.md",
+      "state": "deleted_local",
+      "reason": "deleted_local"
+    },
+    {
+      "path": "wiki/concepts/rate-limits.md",
+      "state": "conflict",
+      "reason": "conflict",
+      "server_sha": "a8f6897201450db5da7dc1ef07acb171871935db"
+    }
+  ],
+  "distill": {
+    "required": false,
+    "bypassed": false
+  },
+  "warnings": []
+}

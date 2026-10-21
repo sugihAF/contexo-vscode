@@ -1,0 +1,51 @@
+{
+  "schema": "ctx.push.v1",
+  "dry_run": false,
+  "message": "ctx push (2 pages)",
+  "server_url": "http://127.0.0.1:9",
+  "repo_id": "fixture-repo",
+  "new_head": "8f087d1187cb2577d2fe16eab93b693f85b661f0",
+  "pushed": [
+    {
+      "path": "wiki/analyses/sync-model.md",
+      "kind": "create",
+      "sha": "8f087d1187cb2577d2fe16eab93b693f85b661f0"
+    }
+  ],
+  "conflicts": [
+    {
+      "path": "wiki/concepts/auth-flow.md",
+      "kind": "both_modified",
+      "base_sha": "621e7ef3a95e6c78a5687a53721c937b6d258ebd",
+      "server_sha": "ef53b1d977c32867a31f660c6214e7b4a4bd89f9"
+    }
+  ],
+  "skipped": [
+    {
+      "path": "wiki/concepts/broken.md",
+      "state": "invalid",
+      "reason": "invalid"
+    },
+    {
+      "path": "wiki/concepts/legacy-sync.md",
+      "state": "unverified",
+      "reason": "unverified"
+    },
+    {
+      "path": "wiki/concepts/old-name.md",
+      "state": "deleted_local",
+      "reason": "deleted_local"
+    },
+    {
+      "path": "wiki/concepts/rate-limits.md",
+      "state": "conflict",
+      "reason": "conflict",
+      "server_sha": "a8f6897201450db5da7dc1ef07acb171871935db"
+    }
+  ],
+  "distill": {
+    "required": false,
+    "bypassed": false
+  },
+  "warnings": []
+}

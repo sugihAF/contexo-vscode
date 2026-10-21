@@ -797,3 +797,97 @@ describe("FakeRepository (test/helpers/fakeRepository.ts, loaded over the vscode
     assert.deepEqual(repo.refreshCalls, [{ remote: true }, { remote: false }]);
   });
 });
+
+describe("code-review regressions (WP-0.6 /code-review high)", () => {
+  const load = createRequire(__filename);
+
+  it("parseEnvelope falls back when the last line carries the error schema but no valid error body; CtxError.fromProcess never throws", () => {
+    for (const line of [
+      '{"schema":"ctx.error.v1","exit_code":1,"message":"x"}',
+      '{"schema":"ctx.error.v1","exit_code":4,"error":null}',
+      '{"schema":"ctx.error.v1","exit_code":4,"error":{"message":"no code"}}',
+      '{"schema":"ctx.error.v1","error":{"code":"busy","message":"m","advice":[],"retryable":true}}',
+    ]) {
+      const env = parseEnvelope(`${line}\n`, 4);
+      assert.equal(env.error.code, "not_authenticated", `fallback by exit code for ${line}`);
+      assert.equal(env.exit_code, 4);
+      const err = CtxError.fromProcess(`${line}\n`, 4);
+      assert.ok(err instanceof CtxError);
+      assert.deepEqual(err.advice, []);
+    }
+    const ok = parseEnvelope('{"schema":"ctx.error.v1","exit_code":12,"error":{"code":"busy","message":"m","advice":[],"retryable":true}}', 12);
+    assert.equal(ok.error.code, "busy", "a well-formed envelope still wins");
+    const noAdvice = CtxError.fromProcess('{"schema":"ctx.error.v1","exit_code":3,"error":{"code":"usage","message":"m","retryable":false}}', 3);
+    assert.deepEqual(noAdvice.advice, [], "a missing advice array becomes []");
+  });
+
+  it("prepare-test-workspaces refuses an --out that is --from, inside it, or an ancestor of it, and never deletes the source", () => {
+    const base = tempDir("prepare guard");
+    const from = path.join(base, "fixtures", "workspaces");
+    fs.mkdirSync(path.join(from, "basic"), { recursive: true });
+    fs.writeFileSync(path.join(from, "basic", "keep.txt"), "x");
+    const script = path.join(REPO_ROOT, "scripts", "prepare-test-workspaces.mjs");
+    for (const out of [from, path.join(from, "copy"), path.join(base, "fixtures"), base]) {
+      const r = spawnSync(process.execPath, [script, "--from", from, "--out", out], { encoding: "utf8" });
+      assert.notEqual(r.status, 0, `--out ${out} must be refused`);
+      assert.ok(fs.existsSync(path.join(from, "basic", "keep.txt")), `--out ${out} deleted the source`);
+    }
+  });
+
+  it("fake ctx answers version --json with the built-in doc when the selected scenario has no version rule (its default never applies to version)", async () => {
+    for (const scenario of ["mixed", "not-initialized", "clean"]) {
+      const r = await runFake(["version", "--json"], { env: baseEnv({ FAKE_CTX_SCENARIO: scenario }) });
+      assert.equal(r.code, 0, `${scenario}: ${r.stderr.toString()}`);
+      const doc = JSON.parse(r.stdout.toString()) as { schema: string; contract_version: number; capabilities: string[] };
+      assert.equal(doc.schema, "ctx.version.v1");
+      assert.equal(doc.capabilities.at(-1), "repair");
+    }
+    const tooOld = await runFake(["version", "--json"], { env: baseEnv({ FAKE_CTX_SCENARIO: "ctx-too-old" }) });
+    assert.equal(tooOld.code, 1, "an explicit version rule still wins");
+  });
+
+  it("fake ctx and fixtures.selectRule ignore the -m commit message when matching rule tokens", async () => {
+    for (const message of ["pull", "status", "--offline"]) {
+      const root = rootWith("clean");
+      const argv = ["push", "--json", "--yes", "--root", root, "-m", message];
+      const r = await runFake(argv);
+      assert.equal(r.code, 0, r.stderr.toString());
+      assert.equal((JSON.parse(r.stdout.toString()) as { schema: string }).schema, "ctx.push.v1", `-m ${message} must not select another rule`);
+      assert.equal(lf(scenarioOutput("clean", argv)?.stdout ?? ""), lf(r.stdout), "fixtures.selectRule agrees");
+    }
+  });
+
+  it("FakeRepository.refresh never throws and clears lastError on every successful refresh", async () => {
+    const { fakeRepository } = load("../../helpers/fakeRepository") as typeof import("../../helpers/fakeRepository");
+    const repo = fakeRepository({ root: "/work/beta" });
+    repo.lastError = CtxError.extension("timeout", "slow");
+    await repo.refresh();
+    assert.equal(repo.lastError, undefined, "no hook: the refresh succeeds and clears lastError");
+
+    repo.onRefresh = () => { throw new Error("hook bug"); };
+    await repo.refresh();
+    const afterHook = (repo as { lastError: CtxError | undefined }).lastError;
+    assert.ok(afterHook instanceof CtxError, "a non-CtxError from the hook lands in lastError");
+    assert.match(afterHook.message, /hook bug/);
+
+    const result = await repo.run("push", async () => "pushed");
+    assert.equal(result, "pushed", "a throwing refresh hook never replaces fn's result");
+  });
+
+  it("the vscode stub's EventEmitter.fire never throws: a throwing listener is reported and the others still run", () => {
+    const emitter = new vscodeStub.EventEmitter<number>();
+    const got: number[] = [];
+    emitter.event(() => { throw new Error("listener bug"); });
+    emitter.event((n) => got.push(n));
+    const original = console.error;
+    const reported: unknown[] = [];
+    console.error = (...a: unknown[]) => { reported.push(a); };
+    try {
+      assert.doesNotThrow(() => emitter.fire(7));
+    } finally {
+      console.error = original;
+    }
+    assert.deepEqual(got, [7]);
+    assert.equal(reported.length, 1, "the listener error is reported once");
+  });
+});

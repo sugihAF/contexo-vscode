@@ -14,12 +14,17 @@
 //   never created), otherwise to the file named by env FAKE_CTX_CALLS, otherwise nowhere.
 // - Scenario name = <root>/.fake-ctx/current (trimmed) when a root is given and that file
 //   exists, else env FAKE_CTX_SCENARIO, else the built-in handshake (which answers only
-//   `version --json`: contract 1 with the 11 v1 capabilities followed by 'repair').
+//   `version --json`: contract 1 with the 11 v1 capabilities followed by 'repair'; and
+//   `version --short`: its version line).
 // - Scenario file = <dir of this file>/../fixtures/ctx/scenarios/<name>/scenario.json:
 //     {"rules":[{"match":[tokens], "unless"?:[tokens], "stdout"?|"stdoutFile"?,
 //       "stderr"?|"stderrFile"?, "exit"?, "delayMs"?, "then"?}], "default"?: {...}}
 //   The first rule whose match tokens are ALL in argv and whose unless tokens are NOT
 //   wins; else `default`; else exit 1 with an `internal` envelope naming the argv.
+//   The value after `-m` (the free-text push message) never counts as a token.
+//   `version` never uses `default`: without an explicit version rule it gets the
+//   built-in handshake (`version --json` doc, `version --short` line), as real ctx
+//   answers version in any project state.
 //   (test/helpers/fixtures.ts selectRule mirrors this; fakeCtx.test pins the agreement.)
 // - Answer: sleep delayMs, write stdout (inline or stdoutFile) and stderr (inline or
 //   stderrFile) as raw bytes, then exit with `exit` (default 0). Files are relative to the
@@ -95,12 +100,37 @@ function currentScenario() {
   return fromEnv !== undefined && fromEnv.trim() !== "" ? fromEnv.trim() : undefined;
 }
 
+/** argv without the value of `-m` (a commit message is free text, never a rule token). */
+function matchTokens(args) {
+  const out = [];
+  for (let i = 0; i < args.length; i++) {
+    out.push(args[i]);
+    if (args[i] === "-m") { i++; }
+  }
+  return out;
+}
+
 function selectRule(scenario) {
+  const tokens = matchTokens(argv);
   for (const rule of scenario.rules ?? []) {
     const unless = rule.unless ?? [];
-    if (rule.match.every((t) => argv.includes(t)) && !unless.some((t) => argv.includes(t))) { return rule; }
+    if (rule.match.every((t) => tokens.includes(t)) && !unless.some((t) => tokens.includes(t))) { return rule; }
   }
-  return scenario.default;
+  return argv[0] === "version" ? undefined : scenario.default;
+}
+
+/** The built-in handshake; true when it answered argv. */
+function builtinVersion() {
+  if (argv[0] !== "version") { return false; }
+  if (argv.includes("--json")) {
+    process.stdout.write(`${JSON.stringify(BUILTIN_VERSION_DOC, null, 2)}\n`);
+    return true;
+  }
+  if (argv.includes("--short")) {
+    process.stdout.write(`${BUILTIN_VERSION_DOC.version}\n`);
+    return true;
+  }
+  return false;
 }
 
 function payload(dir, inline, file) {
@@ -119,11 +149,8 @@ async function main() {
   logCall();
   const name = currentScenario();
   if (name === undefined) {
-    if (argv[0] === "version" && argv.includes("--json")) {
-      process.stdout.write(`${JSON.stringify(BUILTIN_VERSION_DOC, null, 2)}\n`);
-      return;
-    }
-    fail(`no scenario (no <root>/.fake-ctx/current, no FAKE_CTX_SCENARIO); the built-in answers only 'version --json', not ${JSON.stringify(argv)}`);
+    if (builtinVersion()) { return; }
+    fail(`no scenario (no <root>/.fake-ctx/current, no FAKE_CTX_SCENARIO); the built-in answers only 'version --json' and 'version --short', not ${JSON.stringify(argv)}`);
     return;
   }
   const dir = join(SCENARIOS_DIR, name);
@@ -140,6 +167,7 @@ async function main() {
     return;
   }
   const rule = selectRule(scenario);
+  if (rule === undefined && builtinVersion()) { return; }
   if (rule === undefined) {
     fail(`scenario '${name}' has no rule for argv ${JSON.stringify(argv)}`);
     return;

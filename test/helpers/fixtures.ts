@@ -63,14 +63,29 @@ export function loadScenario(name: string): Scenario {
   return JSON.parse(fs.readFileSync(path.join(scenarioDir(name), "scenario.json"), "utf8")) as Scenario;
 }
 
-/** First rule whose match tokens are all in argv and whose unless tokens are not; else the default. */
+/** argv without the value of `-m` (a commit message is free text, never a rule token). */
+export function matchTokens(argv: readonly string[]): string[] {
+  const out: string[] = [];
+  for (let i = 0; i < argv.length; i++) {
+    out.push(argv[i] as string);
+    if (argv[i] === "-m") { i++; }
+  }
+  return out;
+}
+
+/**
+ * First rule whose match tokens are all in argv (minus the -m value) and whose unless
+ * tokens are not; else the default, except for `version`, which never uses the default
+ * (fake-ctx.mjs then answers with its built-in handshake; this returns undefined).
+ */
 export function selectRule(scenario: Scenario, argv: readonly string[]): ScenarioOutput | undefined {
+  const tokens = matchTokens(argv);
   for (const rule of scenario.rules) {
-    if (rule.match.every((t) => argv.includes(t)) && !(rule.unless ?? []).some((t) => argv.includes(t))) {
+    if (rule.match.every((t) => tokens.includes(t)) && !(rule.unless ?? []).some((t) => tokens.includes(t))) {
       return rule;
     }
   }
-  return scenario.default;
+  return argv[0] === "version" ? undefined : scenario.default;
 }
 
 /** What the fake ctx would print for argv (no delay, no `then`). */

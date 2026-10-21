@@ -31,9 +31,15 @@ if (!existsSync(from)) {
   console.error(`prepare-test-workspaces: ${from} does not exist`);
   process.exit(1);
 }
-const inside = relative(from, out);
-if (inside === "" || (!inside.startsWith("..") && !isAbsolute(inside))) {
-  console.error("prepare-test-workspaces: --out must not be inside --from");
+/** True when `child` is `dir` or below it. */
+function within(dir, child) {
+  const rel = relative(dir, child);
+  return rel === "" || (!rel.startsWith("..") && !isAbsolute(rel));
+}
+// --out is deleted recursively: it must not be --from, sit inside it, contain it, or
+// contain the repository.
+if (within(from, out) || within(out, from) || within(out, REPO_ROOT)) {
+  console.error("prepare-test-workspaces: --out must not be --from, inside it, or an ancestor of it or of the repository");
   process.exit(2);
 }
 

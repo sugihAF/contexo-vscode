@@ -51,13 +51,14 @@ class EventEmitter<T> {
     return subscription;
   };
 
-  /** Delivers to every listener; a throwing listener does not stop the others, and the first error is rethrown afterwards. */
+  /**
+   * Delivers to every listener. Like VS Code's Emitter, fire() never throws: a throwing
+   * listener is reported (console.error) and the others still run.
+   */
   fire(data: T): void {
-    let failure: { error: unknown } | undefined;
     for (const l of [...this.#listeners]) {
-      try { l.fn(data); } catch (error) { failure ??= { error }; }
+      try { l.fn(data); } catch (error) { console.error("vscode stub EventEmitter: listener threw", error); }
     }
-    if (failure) { throw failure.error; }
   }
 
   dispose(): void {

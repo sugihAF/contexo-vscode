@@ -9,8 +9,9 @@
 //   unqueued and leave `operation` alone. The promise settles with fn's result or rejection
 //   (after that refresh).
 // - refresh(o) only logs (remote defaults to false) and runs the optional onRefresh hook;
-//   it never throws: a CtxError from the hook lands in lastError, and the next refresh
-//   whose hook succeeds clears it (lastError is 'cleared by the next success').
+//   it never throws: an error from the hook lands in lastError (a non-CtxError wrapped as
+//   contract_mismatch), and every successful refresh clears it ('cleared by the next
+//   success').
 import * as vscode from "vscode";
 import { CtxError } from "../../src/cli/types";
 import type { PageEntry, StatusDoc } from "../../src/contract/types";
@@ -88,10 +89,13 @@ export class FakeRepository implements IRepository, vscode.Disposable {
     this.refreshCalls.push(call);
     try {
       await this.onRefresh?.(call);
-      if (this.onRefresh) { this.lastError = undefined; } // a hook run counts as a successful ctx status
+      this.lastError = undefined; // a successful status clears it (IRepository.lastError)
     } catch (err) {
-      if (err instanceof CtxError) { this.lastError = err; return; }
-      throw err;
+      // Like the real repository, refresh never throws: failures land in lastError. A
+      // non-CtxError (a bug in the test's hook) is wrapped so it stays visible.
+      this.lastError = err instanceof CtxError
+        ? err
+        : CtxError.extension("contract_mismatch", `FakeRepository onRefresh hook threw: ${err instanceof Error ? err.message : String(err)}`);
     }
   }
 

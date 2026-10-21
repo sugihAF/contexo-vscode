@@ -155,7 +155,7 @@ export class CtxError extends Error {
     this.envelope = envelope;
     this.code = code ?? envelope.error.code;
     this.exitCode = envelope.exit_code;
-    this.advice = envelope.error.advice ?? [];
+    this.advice = Array.isArray(envelope.error.advice) ? envelope.error.advice : [];
     this.retryable = envelope.error.retryable;
     if (envelope.error.http_status !== undefined) { this.httpStatus = envelope.error.http_status; }
     if (envelope.error.details !== undefined) { this.details = envelope.error.details; }

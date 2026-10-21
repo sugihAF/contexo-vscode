@@ -452,7 +452,7 @@
     "watch": "node esbuild.mjs --watch",
     "vscode:prepublish": "node esbuild.mjs --production",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.test.json --noEmit",
-    "lint": "eslint .",
+    "lint": "eslint . --max-warnings 0",
     "compile-tests": "tsc -p tsconfig.test.json",
     "test:unit": "npm run compile-tests && mocha --ui bdd --timeout 20000 \"out/test/unit/**/*.test.js\"",
     "pretest": "npm run compile && npm run compile-tests && node scripts/prepare-test-workspaces.mjs",

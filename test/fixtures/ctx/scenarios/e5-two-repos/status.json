@@ -1,0 +1,138 @@
+{
+  "schema": "ctx.status.v1",
+  "generated_at": "2026-10-22T09:00:00Z",
+  "offline": false,
+  "root": "/fixture-root-beta",
+  "contexo_dir": "/fixture-root-beta/.contexo",
+  "project": {
+    "repo_id": "fixture-repo-beta",
+    "config_server_url": "http://127.0.0.1:9",
+    "dashboard_url": "https://app.contexo.live",
+    "dashboard_page_url_template": "https://app.contexo.live/repos/fixture-repo-beta/page/{path}"
+  },
+  "server": {
+    "url": "http://127.0.0.1:9",
+    "url_source": "config",
+    "version": "0.7.0",
+    "capabilities_known": true,
+    "capabilities": [
+      "pages.at",
+      "push.expect_absent",
+      "write.path_sha"
+    ]
+  },
+  "auth": {
+    "state": "authenticated",
+    "credentials_source": "project",
+    "token_kind": "pat",
+    "user_name": "Bob Lee",
+    "user_email": "bob@example.com"
+  },
+  "remote": {
+    "source": "live",
+    "fetched_at": "2026-10-22T09:00:00Z",
+    "repo_exists": true,
+    "head": "9999999999999999999999999999999999999999",
+    "page_count": 3
+  },
+  "counts": {
+    "unchanged": 1,
+    "modified": 1,
+    "new": 0,
+    "incoming": 0,
+    "incoming_new": 0,
+    "conflict": 1,
+    "deleted_local": 0,
+    "invalid": 0,
+    "unverified": 0,
+    "ahead": 1,
+    "behind": 0
+  },
+  "pages": [
+    {
+      "path": "wiki/concepts/caching.md",
+      "state": "unchanged",
+      "type": "concept",
+      "slug": "caching",
+      "title": "Caching",
+      "tags": [
+        "perf"
+      ],
+      "author": "bob",
+      "updated": "2026-10-20T10:00:00Z",
+      "local": {
+        "file": "wiki/concepts/caching.md",
+        "hash": "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+      },
+      "base": {
+        "sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "hash": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+        "synced_at": "2026-10-20T10:01:00Z",
+        "stale": false
+      },
+      "remote": {
+        "sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "notes": []
+    },
+    {
+      "path": "wiki/concepts/zeta.md",
+      "state": "conflict",
+      "conflict_kind": "both_added",
+      "type": "concept",
+      "slug": "zeta",
+      "title": "Zeta",
+      "tags": [
+        "naming"
+      ],
+      "author": "bob",
+      "updated": "2026-10-20T10:00:00Z",
+      "local": {
+        "file": "wiki/concepts/zeta.md",
+        "hash": "sha256:4444444444444444444444444444444444444444444444444444444444444444"
+      },
+      "remote": {
+        "sha": "cccccccccccccccccccccccccccccccccccccccc",
+        "author": "Alice Tan",
+        "email": "alice@example.com",
+        "time": "2026-10-21T08:00:00Z",
+        "message": "ctx push (1 pages)"
+      },
+      "notes": []
+    },
+    {
+      "path": "wiki/entities/api-gateway.md",
+      "state": "modified",
+      "type": "entity",
+      "slug": "api-gateway",
+      "title": "API gateway",
+      "tags": [
+        "api",
+        "edge"
+      ],
+      "author": "bob",
+      "updated": "2026-10-20T10:00:00Z",
+      "local": {
+        "file": "wiki/entities/api-gateway.md",
+        "hash": "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+      },
+      "base": {
+        "sha": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "hash": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+        "synced_at": "2026-10-20T10:01:00Z",
+        "stale": false
+      },
+      "remote": {
+        "sha": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "notes": []
+    }
+  ],
+  "captures": {
+    "pending": 0,
+    "fresh": 0,
+    "blocks_push": false,
+    "sessions": []
+  },
+  "warnings": []
+}

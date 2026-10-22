@@ -1,0 +1,175 @@
+{
+  "schema": "ctx.status.v1",
+  "generated_at": "2026-10-22T09:00:00Z",
+  "offline": false,
+  "root": "/fixture-root",
+  "contexo_dir": "/fixture-root/.contexo",
+  "project": {
+    "repo_id": "fixture-repo",
+    "config_server_url": "http://127.0.0.1:9",
+    "dashboard_url": "https://app.contexo.live",
+    "dashboard_page_url_template": "https://app.contexo.live/repos/fixture-repo/page/{path}"
+  },
+  "server": {
+    "url": "http://127.0.0.1:9",
+    "url_source": "config",
+    "capabilities_known": false,
+    "capabilities": []
+  },
+  "auth": {
+    "state": "not_authenticated"
+  },
+  "remote": {
+    "source": "none",
+    "page_count": 0,
+    "error": {
+      "code": "not_authenticated",
+      "message": "not logged in: no Contexo credentials for this project",
+      "advice": [
+        "ctx auth login"
+      ],
+      "retryable": false
+    }
+  },
+  "counts": {
+    "unchanged": 1,
+    "modified": 1,
+    "new": 1,
+    "incoming": 0,
+    "incoming_new": 0,
+    "conflict": 0,
+    "deleted_local": 1,
+    "invalid": 1,
+    "unverified": 1,
+    "ahead": 2,
+    "behind": 0
+  },
+  "pages": [
+    {
+      "path": "wiki/analyses/sync-model.md",
+      "state": "new",
+      "type": "analysis",
+      "slug": "sync-model",
+      "title": "Sync model",
+      "tags": [
+        "sync"
+      ],
+      "author": "bob",
+      "updated": "2026-10-20T10:00:00Z",
+      "local": {
+        "file": "wiki/analyses/sync-model.md",
+        "hash": "sha256:8888888888888888888888888888888888888888888888888888888888888888"
+      },
+      "notes": []
+    },
+    {
+      "path": "wiki/concepts/auth-flow.md",
+      "state": "modified",
+      "type": "concept",
+      "slug": "auth-flow",
+      "title": "Auth flow",
+      "tags": [
+        "auth",
+        "security"
+      ],
+      "author": "bob",
+      "updated": "2026-10-20T10:00:00Z",
+      "local": {
+        "file": "wiki/concepts/auth-flow.md",
+        "hash": "sha256:5555555555555555555555555555555555555555555555555555555555555555"
+      },
+      "base": {
+        "sha": "dddddddddddddddddddddddddddddddddddddddd",
+        "hash": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+        "synced_at": "2026-10-20T10:01:00Z",
+        "stale": false
+      },
+      "notes": []
+    },
+    {
+      "path": "wiki/concepts/broken.md",
+      "state": "invalid",
+      "tags": [],
+      "local": {
+        "file": "wiki/concepts/broken.md"
+      },
+      "invalid": {
+        "stage": "validate",
+        "message": "page: validate: author is required"
+      },
+      "notes": []
+    },
+    {
+      "path": "wiki/concepts/old-name.md",
+      "state": "deleted_local",
+      "tags": [],
+      "base": {
+        "sha": "0000000000000000000000000000000000000000",
+        "hash": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+        "synced_at": "2026-10-20T10:01:00Z",
+        "stale": false
+      },
+      "notes": []
+    },
+    {
+      "path": "wiki/concepts/retry-policy.md",
+      "state": "unchanged",
+      "type": "concept",
+      "slug": "retry-policy",
+      "title": "Retry policy",
+      "tags": [
+        "api",
+        "retries"
+      ],
+      "author": "bob",
+      "updated": "2026-10-20T10:00:00Z",
+      "local": {
+        "file": "wiki/concepts/retry-policy.md",
+        "hash": "sha256:7777777777777777777777777777777777777777777777777777777777777777"
+      },
+      "base": {
+        "sha": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "hash": "sha256:7777777777777777777777777777777777777777777777777777777777777777",
+        "synced_at": "2026-10-20T10:01:00Z",
+        "stale": false
+      },
+      "notes": []
+    },
+    {
+      "path": "wiki/entities/gitstore.md",
+      "state": "unverified",
+      "type": "entity",
+      "slug": "gitstore",
+      "title": "Gitstore",
+      "tags": [
+        "server",
+        "storage"
+      ],
+      "author": "bob",
+      "updated": "2026-10-20T10:00:00Z",
+      "local": {
+        "file": "wiki/entities/gitstore.md",
+        "hash": "sha256:9999999999999999999999999999999999999999999999999999999999999999"
+      },
+      "base": {
+        "sha": "ffffffffffffffffffffffffffffffffffffffff",
+        "stale": true
+      },
+      "notes": []
+    }
+  ],
+  "captures": {
+    "pending": 1,
+    "fresh": 0,
+    "blocks_push": false,
+    "sessions": [
+      {
+        "session_id": "0b5c1d2e-3f40-4a5b-8c6d-7e8f9a0b1c2d",
+        "turns": 4,
+        "updated_at": "2026-10-21T15:00:00Z",
+        "fresh": false
+      }
+    ]
+  },
+  "warnings": []
+}

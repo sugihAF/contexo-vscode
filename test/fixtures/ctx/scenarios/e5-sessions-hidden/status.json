@@ -1,0 +1,164 @@
+{
+  "schema": "ctx.status.v1",
+  "generated_at": "2026-10-22T09:00:00Z",
+  "offline": false,
+  "root": "/fixture-root",
+  "contexo_dir": "/fixture-root/.contexo",
+  "project": {
+    "repo_id": "fixture-repo",
+    "config_server_url": "http://127.0.0.1:9",
+    "dashboard_url": "https://app.contexo.live",
+    "dashboard_page_url_template": "https://app.contexo.live/repos/fixture-repo/page/{path}"
+  },
+  "server": {
+    "url": "http://127.0.0.1:9",
+    "url_source": "config",
+    "version": "0.7.0",
+    "capabilities_known": true,
+    "capabilities": [
+      "pages.at",
+      "push.expect_absent",
+      "write.path_sha"
+    ]
+  },
+  "auth": {
+    "state": "authenticated",
+    "credentials_source": "project",
+    "token_kind": "pat",
+    "user_name": "Bob Lee",
+    "user_email": "bob@example.com"
+  },
+  "remote": {
+    "source": "live",
+    "fetched_at": "2026-10-22T09:00:00Z",
+    "repo_exists": true,
+    "head": "9999999999999999999999999999999999999999",
+    "page_count": 3
+  },
+  "counts": {
+    "unchanged": 3,
+    "modified": 0,
+    "new": 1,
+    "incoming": 0,
+    "incoming_new": 0,
+    "conflict": 0,
+    "deleted_local": 0,
+    "invalid": 0,
+    "unverified": 0,
+    "ahead": 1,
+    "behind": 0
+  },
+  "pages": [
+    {
+      "path": "raw/sessions/2026-10-01-login-debug.md",
+      "state": "unchanged",
+      "type": "source",
+      "slug": "2026-10-01-login-debug",
+      "title": "Login debug session",
+      "tags": [
+        "auth"
+      ],
+      "author": "bob",
+      "updated": "2026-10-20T10:00:00Z",
+      "local": {
+        "file": "raw/sessions/2026-10-01-login-debug.md",
+        "hash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "base": {
+        "sha": "1111111111111111111111111111111111111111",
+        "hash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "synced_at": "2026-10-20T10:01:00Z",
+        "stale": false
+      },
+      "remote": {
+        "sha": "1111111111111111111111111111111111111111"
+      },
+      "notes": []
+    },
+    {
+      "path": "raw/sessions/2026-10-20-cache-tuning.md",
+      "state": "unchanged",
+      "type": "source",
+      "slug": "2026-10-20-cache-tuning",
+      "title": "Cache tuning session",
+      "tags": [
+        "perf"
+      ],
+      "author": "bob",
+      "updated": "2026-10-20T10:00:00Z",
+      "local": {
+        "file": "raw/sessions/2026-10-20-cache-tuning.md",
+        "hash": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "base": {
+        "sha": "2222222222222222222222222222222222222222",
+        "hash": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "synced_at": "2026-10-20T10:01:00Z",
+        "stale": false
+      },
+      "remote": {
+        "sha": "2222222222222222222222222222222222222222"
+      },
+      "notes": []
+    },
+    {
+      "path": "wiki/concepts/cache-eviction.md",
+      "state": "new",
+      "type": "concept",
+      "slug": "cache-eviction",
+      "title": "Cache eviction",
+      "tags": [
+        "perf",
+        "cache"
+      ],
+      "author": "bob",
+      "updated": "2026-10-20T10:00:00Z",
+      "reasoning_summary": "LRU beat LFU on the replay trace.",
+      "local": {
+        "file": "wiki/concepts/cache-eviction.md",
+        "hash": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      },
+      "notes": []
+    },
+    {
+      "path": "wiki/entities/gitstore.md",
+      "state": "unchanged",
+      "type": "entity",
+      "slug": "gitstore",
+      "title": "Gitstore",
+      "tags": [
+        "server"
+      ],
+      "author": "bob",
+      "updated": "2026-10-20T10:00:00Z",
+      "local": {
+        "file": "wiki/entities/gitstore.md",
+        "hash": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+      },
+      "base": {
+        "sha": "3333333333333333333333333333333333333333",
+        "hash": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "synced_at": "2026-10-20T10:01:00Z",
+        "stale": false
+      },
+      "remote": {
+        "sha": "3333333333333333333333333333333333333333"
+      },
+      "notes": []
+    }
+  ],
+  "captures": {
+    "pending": 1,
+    "fresh": 1,
+    "blocks_push": true,
+    "sessions": [
+      {
+        "session_id": "5d0c6a3e-1f2b-4c7d-9e8f-0a1b2c3d4e5f",
+        "turns": 14,
+        "updated_at": "2026-10-22T08:40:00Z",
+        "fresh": true
+      }
+    ]
+  },
+  "warnings": []
+}

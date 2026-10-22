@@ -45,32 +45,134 @@ export interface OperationQueueDeps {
  *   refresh runs.
  */
 export class OperationQueue {
-  constructor(private readonly deps: OperationQueueDeps) {
-    void this.deps;
-  }
+  private _operation: OperationKind | undefined;
+  private _pending = 0;
+  /** True while onDidChangeOperation(undefined) runs: a refresh asked for there joins the follow-up. */
+  private settling = false;
+  private disposed = false;
+  /** Settles when the last queued mutating operation and its follow-up refresh have settled. */
+  private tail: Promise<unknown> = Promise.resolve();
+  /** The status running now. */
+  private inFlight: Batch | undefined;
+  /** The ONE status queued behind inFlight. */
+  private next: Batch | undefined;
+  /** Requests made while an operation was queued or running: resolved by its follow-up refresh. */
+  private opWaiters: Batch | undefined;
+
+  constructor(private readonly deps: OperationQueueDeps) {}
 
   /** The mutating operation whose fn is running, else undefined. */
   get operation(): OperationKind | undefined {
-    throw new Error("OperationQueue: not implemented (WP-1.8 lane B)");
+    return this._operation;
   }
 
   /** Mutating operations queued or running (fn not yet settled). */
   get pendingOperations(): number {
-    throw new Error("OperationQueue: not implemented (WP-1.8 lane B)");
+    return this._pending;
   }
 
   refresh(remote: boolean): Promise<void> {
-    void remote;
-    throw new Error("OperationQueue: not implemented (WP-1.8 lane B)");
+    if (this.disposed) { return Promise.resolve(); }
+    if (this._pending > 0 || this.settling) {
+      this.opWaiters ??= newBatch(true);
+      return this.opWaiters.promise;
+    }
+    return this.coalesce(remote);
   }
 
   run<T>(kind: OperationKind, fn: () => Promise<T>): Promise<T> {
-    void kind;
-    void fn;
-    throw new Error("OperationQueue: not implemented (WP-1.8 lane B)");
+    if (!MUTATING_OPERATIONS.has(kind)) { return Promise.resolve().then(fn); }
+    this._pending++;
+    const result = this.tail.then(async () => {
+      this.setOperation(kind);
+      let outcome: { ok: true; value: T } | { ok: false; error: unknown };
+      try {
+        outcome = { ok: true, value: await fn() };
+      } catch (error) {
+        outcome = { ok: false, error };
+      }
+      this._pending--;
+      this.settling = true;
+      try {
+        this.setOperation(undefined);
+      } finally {
+        this.settling = false;
+      }
+      const waiters = this.opWaiters;
+      this.opWaiters = undefined;
+      await this.coalesce(true);
+      waiters?.resolve();
+      if (!outcome.ok) { throw outcome.error; }
+      return outcome.value;
+    });
+    this.tail = result.then(noop, noop);
+    return result;
   }
 
   dispose(): void {
-    throw new Error("OperationQueue: not implemented (WP-1.8 lane B)");
+    if (this.disposed) { return; }
+    this.disposed = true;
+    for (const b of [this.inFlight, this.next, this.opWaiters]) { b?.resolve(); }
+    this.next = undefined;
+    this.opWaiters = undefined;
   }
+
+  private setOperation(kind: OperationKind | undefined): void {
+    this._operation = kind;
+    try {
+      this.deps.onDidChangeOperation(kind);
+    } catch {
+      // A throwing listener must not wedge the queue (operation, pendingOperations, FIFO).
+    }
+  }
+
+  /** At most one status in flight plus ONE follow-up (online if any request was). Never rejects. */
+  private coalesce(remote: boolean): Promise<void> {
+    if (this.disposed) { return Promise.resolve(); }
+    if (this.inFlight === undefined) {
+      const b = newBatch(remote);
+      this.start(b);
+      return b.promise;
+    }
+    if (this.next !== undefined) {
+      this.next.remote ||= remote;
+      return this.next.promise;
+    }
+    this.next = newBatch(remote);
+    return this.next.promise;
+  }
+
+  private start(b: Batch): void {
+    this.inFlight = b;
+    let run: Promise<void>;
+    try {
+      run = Promise.resolve(this.deps.runStatus(b.remote));
+    } catch (error) {
+      run = Promise.reject(error);
+    }
+    void run.catch(noop).then(() => {
+      this.inFlight = undefined;
+      const n = this.next;
+      this.next = undefined;
+      if (n !== undefined && !this.disposed) { this.start(n); }
+      b.resolve();
+    });
+  }
+}
+
+/** Requests that share one status run (or one follow-up refresh). */
+interface Batch {
+  remote: boolean;
+  readonly promise: Promise<void>;
+  readonly resolve: () => void;
+}
+
+function newBatch(remote: boolean): Batch {
+  let resolve!: () => void;
+  const promise = new Promise<void>((r) => { resolve = r; });
+  return { remote, promise, resolve };
+}
+
+function noop(): void {
+  // Intentionally empty.
 }

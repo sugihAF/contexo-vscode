@@ -4,7 +4,7 @@
 // live in model.ts), so plain mocha tests drive it with fake timers.
 import type { Disposable, Event, Uri } from "vscode";
 import type { AuthState, StatusDoc } from "../contract/types";
-import type { ContexoConfig } from "../services";
+import { clampRefreshInterval, type ContexoConfig } from "../services";
 
 /** The three watcher globs, relative to the workspace folder (E28: never the credentials literal). */
 export const WATCH_GLOBS = {
@@ -75,9 +75,29 @@ export interface RefreshSchedulerDeps {
  * ctx, excluded from the page set). Nested index.md / tags.md are pages.
  */
 export function isWatchedPagePath(relPath: string, platform: NodeJS.Platform = process.platform): boolean {
-  void relPath;
-  void platform;
-  throw new Error("isWatchedPagePath: not implemented (WP-1.8 lane B)");
+  const segments = foldCase(relPath, platform).split("/");
+  if (segments.includes(".sync")) { return false; }
+  const only = segments.length === 1 ? segments[0] : undefined;
+  return only !== "index.md" && only !== "tags.md";
+}
+
+/** darwin and win32 file systems are case-insensitive: compare paths lower-cased there. */
+function foldCase(relPath: string, platform: NodeJS.Platform): string {
+  return platform === "darwin" || platform === "win32" ? relPath.toLowerCase() : relPath;
+}
+
+/** A json watcher path the scheduler acts on: one segment ending in '.json'. */
+function isTopLevelJson(folded: string): boolean {
+  return !folded.includes("/") && folded.endsWith(".json") && folded.length > ".json".length;
+}
+
+const PENDING_DIR = "raw/sessions/_pending/";
+
+/** A capture buffer: exactly one segment below raw/sessions/_pending. */
+function isPendingBuffer(folded: string): boolean {
+  if (!folded.startsWith(PENDING_DIR)) { return false; }
+  const name = folded.slice(PENDING_DIR.length);
+  return name !== "" && !name.includes("/");
 }
 
 /**
@@ -116,27 +136,179 @@ export function isWatchedPagePath(relPath: string, platform: NodeJS.Platform = p
  * dispose(): clears every timer and subscription; no refresh is requested afterwards.
  */
 export class RefreshScheduler implements Disposable {
+  private readonly debounce: Record<keyof typeof DEBOUNCE, Debouncer>;
+  private readonly subscriptions: Disposable[] = [];
+  private started = false;
+  private disposed = false;
+  /** clock.now() of the latest noteOnline, undefined before the first. */
+  private lastOnlineAt: number | undefined;
+  /** The rate_limited poll interval in seconds, undefined when no backoff applies. */
+  private backoffSeconds: number | undefined;
+  private poll: { handle: unknown } | undefined;
+
   constructor(private readonly deps: RefreshSchedulerDeps) {
-    void this.deps;
+    const { clock } = deps;
+    this.debounce = {
+      md: new Debouncer(clock, DEBOUNCE.md, () => this.request(false)),
+      json: new Debouncer(clock, DEBOUNCE.json, () => this.request(true)),
+      pending: new Debouncer(clock, DEBOUNCE.pending, () => this.request(false)),
+    };
   }
 
   /** Subscribe to the watchers, focus and config. Idempotent. */
   start(): void {
-    throw new Error("RefreshScheduler: not implemented (WP-1.8 lane B)");
+    if (this.started || this.disposed) { return; }
+    this.started = true;
+    const { watchers, focus, config } = this.deps;
+    const onMd = (uri: Uri): void => {
+      const rel = this.deps.relPathOf(uri);
+      if (rel !== undefined && isWatchedPagePath(rel, this.platform)) { this.debounce.md.trigger(); }
+    };
+    const onJson = (uri: Uri): void => {
+      const rel = this.deps.relPathOf(uri);
+      if (rel !== undefined && isTopLevelJson(foldCase(rel, this.platform))) { this.debounce.json.trigger(); }
+    };
+    const onPending = (uri: Uri): void => {
+      const rel = this.deps.relPathOf(uri);
+      if (rel !== undefined && isPendingBuffer(foldCase(rel, this.platform))) { this.debounce.pending.trigger(); }
+    };
+    this.subscriptions.push(
+      watchers.md.onDidCreate(onMd),
+      watchers.md.onDidChange(onMd),
+      watchers.md.onDidDelete(onMd),
+      watchers.json.onDidCreate(onJson),
+      watchers.json.onDidChange(onJson),
+      watchers.json.onDidDelete(onJson),
+      // pending change events are ignored (the watcher is created with ignoreChangeEvents).
+      watchers.pending.onDidCreate(onPending),
+      watchers.pending.onDidDelete(onPending),
+      focus.onDidChange(() => this.onFocusChange()),
+      config.onDidChange(() => this.schedulePoll()),
+    );
   }
 
   /** The outcome of an online status: the StatusDoc ctx returned, or undefined when it failed. */
   noteOnline(doc: StatusDoc | undefined): void {
-    void doc;
-    throw new Error("RefreshScheduler: not implemented (WP-1.8 lane B)");
+    if (this.disposed) { return; }
+    this.lastOnlineAt = this.deps.clock.now();
+    const base = this.baseIntervalSeconds();
+    if (doc?.remote.error?.code === "rate_limited") {
+      this.backoffSeconds = Math.max(base, Math.min(MAX_BACKOFF_SECONDS, (this.backoffSeconds ?? base) * 2));
+    } else if (doc?.remote.source === "live") {
+      this.backoffSeconds = undefined;
+    }
+    this.schedulePoll();
   }
 
   /** The poll interval in seconds that applies now (base interval or backoff). */
   get intervalSeconds(): number {
-    throw new Error("RefreshScheduler: not implemented (WP-1.8 lane B)");
+    return this.backoffSeconds ?? this.baseIntervalSeconds();
   }
 
   dispose(): void {
-    throw new Error("RefreshScheduler: not implemented (WP-1.8 lane B)");
+    if (this.disposed) { return; }
+    this.disposed = true;
+    this.clearPoll();
+    for (const d of Object.values(this.debounce)) { d.cancel(); }
+    for (const s of this.subscriptions.splice(0)) { s.dispose(); }
   }
+
+  private get platform(): NodeJS.Platform {
+    return this.deps.platform ?? process.platform;
+  }
+
+  private baseIntervalSeconds(): number {
+    return clampRefreshInterval(this.deps.config.remoteRefreshIntervalSeconds);
+  }
+
+  /** Remote poll eligibility, read live: enabled, focused, and auth not known to be bad. */
+  private eligible(): boolean {
+    const auth = this.deps.authState();
+    const authAllows = auth === undefined || auth === "authenticated" || auth === "unchecked";
+    return this.deps.config.remoteRefreshEnabled && this.deps.focus.focused && authAllows;
+  }
+
+  /** (Re)arm the poll timer at lastOnlineAt + interval, or leave it cleared when not eligible. */
+  private schedulePoll(): void {
+    this.clearPoll();
+    if (this.disposed || this.lastOnlineAt === undefined || !this.eligible()) { return; }
+    const delay = Math.max(0, this.lastOnlineAt + this.intervalSeconds * 1_000 - this.deps.clock.now());
+    this.poll = { handle: this.deps.clock.setTimeout(() => this.onPollTimer(), delay) };
+  }
+
+  private clearPoll(): void {
+    if (this.poll === undefined) { return; }
+    this.deps.clock.clearTimeout(this.poll.handle);
+    this.poll = undefined;
+  }
+
+  private onPollTimer(): void {
+    this.poll = undefined;
+    // Eligibility may have changed without an event (auth.state from a status, a setting).
+    if (this.disposed || !this.eligible()) { return; }
+    this.request(true); // the repository's noteOnline schedules the next poll
+  }
+
+  private onFocusChange(): void {
+    if (this.disposed) { return; }
+    const stale = this.lastOnlineAt === undefined
+      || this.deps.clock.now() - this.lastOnlineAt >= this.intervalSeconds * 1_000;
+    if (this.eligible() && stale) {
+      this.clearPoll();
+      this.request(true);
+    } else {
+      this.schedulePoll(); // focus lost: cleared; regained but fresh: armed
+    }
+  }
+
+  /** Fire-and-forget: a rejection or throw from deps.refresh never escapes a timer or listener. */
+  private request(remote: boolean): void {
+    if (this.disposed) { return; }
+    try {
+      void Promise.resolve(this.deps.refresh({ remote })).catch(noop);
+    } catch {
+      // The repository records its own failures (lastError); nothing to do here.
+    }
+  }
+}
+
+/** Trailing debounce restarted by every event, fired no later than maxWaitMs after the burst's first event. */
+class Debouncer {
+  private timer: { handle: unknown } | undefined;
+  private burstStart: number | undefined;
+
+  constructor(
+    private readonly clock: Clock,
+    private readonly timing: { readonly delayMs: number; readonly maxWaitMs: number },
+    private readonly fire: () => void,
+  ) {}
+
+  trigger(): void {
+    const now = this.clock.now();
+    this.burstStart ??= now;
+    const at = Math.min(now + this.timing.delayMs, this.burstStart + this.timing.maxWaitMs);
+    this.clearTimer();
+    this.timer = {
+      handle: this.clock.setTimeout(() => {
+        this.timer = undefined;
+        this.burstStart = undefined;
+        this.fire();
+      }, Math.max(0, at - now)),
+    };
+  }
+
+  cancel(): void {
+    this.clearTimer();
+    this.burstStart = undefined;
+  }
+
+  private clearTimer(): void {
+    if (this.timer === undefined) { return; }
+    this.clock.clearTimeout(this.timer.handle);
+    this.timer = undefined;
+  }
+}
+
+function noop(): void {
+  // Intentionally empty.
 }

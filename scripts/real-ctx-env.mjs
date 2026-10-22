@@ -33,7 +33,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const HOST = "127.0.0.1";
 const PORT = 18080;
 const SERVER_URL = `http://${HOST}:${PORT}`;
-/** The capabilities a v1 server advertises (errata E13); pages.etag is reserved and never required. */
+/** The capabilities a v1 server advertises (errata E13); the reserved ETag capability is never required. */
 const SERVER_CAPS = ["pages.at", "push.expect_absent", "write.path_sha"];
 const RC_VERSION = "0.7.0-rc.1";
 const VERSION_PKG = "github.com/sugihAF/contexo/internal/version";

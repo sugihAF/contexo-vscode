@@ -122,15 +122,28 @@ const configs = [
 ];
 
 if (process.env.REAL_CTX_ALICE) {
-  // Placeholder; WP-3.1 owns this entry (its HOME/PATH env, timeouts and files). It runs the
-  // real ctx, so it gets no CONTEXO_TEST_CTX.
+  // WP-3.1: the Extension Host scenarios against the REAL ctx (scripts/real-ctx-env.mjs test).
+  // No CONTEXO_TEST_CTX: discovery finds $RUN/bin/ctx through contexo.path (seeded in the
+  // profile's User/settings.json by the harness) and PATH. alice's isolated HOME, a profile
+  // under $RUN, and REAL_CTX_OUT (default out) for a container lane's own compile output.
+  const run = process.env.REAL_CTX_RUN ?? path.dirname(process.env.REAL_CTX_ALICE);
+  const home = process.env.REAL_CTX_HOME_ALICE ?? path.join(run, "home-alice");
   configs.push({
     label: "real-ctx",
     version: "stable",
-    files: "out/test/real-ctx/**/*.test.js",
+    files: `${process.env.REAL_CTX_OUT ?? "out"}/test/real-ctx/scenarios.real.js`,
     workspaceFolder: process.env.REAL_CTX_ALICE,
-    launchArgs: profileArgs("r"),
-    mocha: MOCHA,
+    env: {
+      HOME: home,
+      USERPROFILE: home,
+      PATH: `${path.join(run, "bin")}${path.delimiter}${process.env.PATH ?? ""}`,
+    },
+    launchArgs: [
+      "--disable-extensions",
+      `--user-data-dir=${path.join(run, "vscode-user-data")}`,
+      `--extensions-dir=${path.join(run, "vscode-ext")}`,
+    ],
+    mocha: { ...MOCHA, timeout: 120000 },
   });
 }
 

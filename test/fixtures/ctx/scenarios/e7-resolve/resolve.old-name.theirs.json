@@ -1,0 +1,10 @@
+{
+  "schema": "ctx.resolve.v1",
+  "path": "wiki/concepts/old-name.md",
+  "strategy": "theirs",
+  "previous_state": "deleted_local",
+  "state": "unchanged",
+  "base_sha": "6cdaea343dff8071da0bca651f4f201d0f471f61",
+  "file_written": true,
+  "warnings": []
+}

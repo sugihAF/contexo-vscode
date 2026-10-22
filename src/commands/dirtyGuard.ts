@@ -29,8 +29,21 @@ export const SAVE_ALL_LABEL = "Save All and Continue";
 
 /** The documents with isDirty whose uri is a file: Uri under repo.contexoDir (repo.relPathOf(uri) defined), in docs order. */
 export function dirtyDocumentsOf(repo: Pick<IRepository, "relPathOf">, docs: readonly SavableDocument[]): SavableDocument[] {
-  void repo; void docs;
-  throw new Error("not implemented");
+  return docs.filter((d) => d.isDirty && d.uri.scheme === "file" && repo.relPathOf(d.uri) !== undefined);
+}
+
+/** A dirty document's relPath (dirtyDocumentsOf guarantees one; the fsPath is only a fallback). */
+function relPathOfDoc(repo: Pick<IRepository, "relPathOf">, d: SavableDocument): string {
+  return repo.relPathOf(d.uri) ?? d.uri.fsPath;
+}
+
+/** doc.save(), with a rejection counted as a failed save. */
+async function trySave(d: SavableDocument): Promise<boolean> {
+  try {
+    return (await d.save()) === true;
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -50,6 +63,38 @@ export async function ensureSaved(
   o: { mode: GuardMode; targets?: readonly string[] },
   env: DirtyGuardEnv = defaultDirtyGuardEnv,
 ): Promise<boolean> {
-  void s; void repo; void o; void env;
-  throw new Error("not implemented");
+  if (o.mode === "ours") { return true; }
+  const dirty = dirtyDocumentsOf(repo, env.textDocuments());
+
+  if (o.mode === "theirs") {
+    const targets = new Set(o.targets ?? []);
+    // A target matches by the editor's relPath, or by its status entry's path (pageAt
+    // handles case-insensitive file systems, where the editor's casing may differ).
+    const isTarget = (d: SavableDocument): boolean => {
+      const entry = repo.pageAt(d.uri)?.path;
+      return targets.has(relPathOfDoc(repo, d)) || (entry !== undefined && targets.has(entry));
+    };
+    const blocked = dirty.filter(isTarget).map((d) => relPathOfDoc(repo, d));
+    if (blocked.length === 0) { return true; }
+    void s.prompts.warn(`Save or revert ${blocked.join(", ")} first`);
+    return false;
+  }
+
+  if (dirty.length === 0) { return true; }
+  const relPaths = dirty.map((d) => relPathOfDoc(repo, d));
+  const confirmed = await s.prompts.confirm(`${dirty.length} unsaved Contexo page(s)`, {
+    modal: true,
+    confirmLabel: SAVE_ALL_LABEL,
+    detail: relPaths.join("\n"),
+  });
+  if (!confirmed) { return false; }
+  for (const [i, d] of dirty.entries()) {
+    if (!(await trySave(d))) {
+      void s.prompts.error(`Could not save ${relPaths[i] ?? relPathOfDoc(repo, d)}; nothing was synced.`);
+      return false;
+    }
+  }
+  // The saved bytes change the page states (a buffer edit shows as modified only on disk).
+  await repo.refresh({ remote: false });
+  return true;
 }

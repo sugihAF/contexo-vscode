@@ -1,0 +1,9 @@
+{
+  "rules": [
+    {"match":["status","--json"],"unless":["--offline"],"stdoutFile":"../not-authenticated/status.json"},
+    {"match":["status","--offline"],"stdoutFile":"../not-authenticated/status-offline.json"},
+    {"match":["push"],"exit":4,"stderrFile":"../not-authenticated/not_authenticated.stderr"},
+    {"match":["pull"],"exit":4,"stderrFile":"../not-authenticated/not_authenticated.stderr"},
+    {"match":["resolve"],"exit":4,"stderrFile":"../not-authenticated/not_authenticated.stderr"}
+  ]
+}

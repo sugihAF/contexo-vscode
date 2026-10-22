@@ -1,0 +1,7 @@
+{
+  "rules": [
+    {"match":["status","--json"],"unless":["--offline"],"stdoutFile":"status.json"},
+    {"match":["status","--offline"],"stdoutFile":"status-offline.json"},
+    {"match":["pull"],"stdoutFile":"pull.json"}
+  ]
+}

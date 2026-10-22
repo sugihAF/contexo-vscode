@@ -1,0 +1,11 @@
+{
+  "schema": "ctx.resolve.v1",
+  "path": "wiki/concepts/rate-limits.md",
+  "strategy": "theirs",
+  "previous_state": "conflict",
+  "state": "unchanged",
+  "base_sha": "a8f6897201450db5da7dc1ef07acb171871935db",
+  "file_written": true,
+  "backup_file": ".sync/backup/wiki/concepts/rate-limits.md.20261015T093512Z",
+  "warnings": []
+}

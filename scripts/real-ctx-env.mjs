@@ -15,7 +15,9 @@
 // cross-compiled on a Mac for a headless container run (lead ruling L24); `build` refuses the
 // same sources `up --src` refuses and records the source commit in <dir>/BUILD-INFO.json.
 // --no-vscode skips the Extension Host scenarios (vscode-test --label real-ctx) and says so on
-// stderr; it is never implied. The isolation rules are in test/real-ctx/README.md.
+// stderr; it is never implied. TDD knobs: REAL_CTX_SUITES=conformance|scenarios (default both;
+// a left-out suite is named on stderr), REAL_CTX_GREP (mocha grep for the real-ctx label) and
+// REAL_CTX_OUT (compile output dir, default out). The isolation rules are in test/real-ctx/README.md.
 import { spawn, spawnSync } from "node:child_process";
 import { createHash, randomBytes } from "node:crypto";
 import {
@@ -476,16 +478,24 @@ async function cmdTest(flags) {
     throw new Fail(`tsc -p tsconfig.test.json --outDir ${outDir} failed`);
   }
   let failed = 0;
+  // Both suites run unless --no-vscode or REAL_CTX_SUITES (a TDD knob, e.g. "scenarios") says
+  // otherwise; every suite left out is named on stderr.
+  const suites = new Set((process.env.REAL_CTX_SUITES ?? "conformance,scenarios").split(",").map((x) => x.trim()));
+  if (flags["no-vscode"]) { suites.delete("scenarios"); }
 
   const conformance = `${outDir}/test/real-ctx/conformance.real.js`;
-  log(`conformance: node mocha ${conformance}`);
-  if (nodeTool(["node_modules", "mocha", "bin", "mocha.js"], ["--ui", "bdd", "--timeout", "120000", conformance], childEnv) !== 0) {
-    log("conformance FAILED");
-    failed++;
+  if (!suites.has("conformance")) {
+    log("SKIPPED by REAL_CTX_SUITES: the conformance suite did not run");
+  } else {
+    log(`conformance: node mocha ${conformance}`);
+    if (nodeTool(["node_modules", "mocha", "bin", "mocha.js"], ["--ui", "bdd", "--timeout", "120000", conformance], childEnv) !== 0) {
+      log("conformance FAILED");
+      failed++;
+    }
   }
 
-  if (flags["no-vscode"]) {
-    log("SKIPPED by --no-vscode: the Extension Host scenarios (vscode-test --label real-ctx) did not run");
+  if (!suites.has("scenarios")) {
+    log(`SKIPPED by ${flags["no-vscode"] ? "--no-vscode" : "REAL_CTX_SUITES"}: the Extension Host scenarios (vscode-test --label real-ctx) did not run`);
   } else {
     const userDir = path.join(env.REAL_CTX_RUN, "vscode-user-data", "User");
     mkdirSync(userDir, { recursive: true });

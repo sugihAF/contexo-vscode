@@ -143,7 +143,7 @@ if (process.env.REAL_CTX_ALICE) {
       `--user-data-dir=${path.join(run, "vscode-user-data")}`,
       `--extensions-dir=${path.join(run, "vscode-ext")}`,
     ],
-    mocha: { ...MOCHA, timeout: 120000 },
+    mocha: { ...MOCHA, timeout: 120000, ...(process.env.REAL_CTX_GREP ? { grep: process.env.REAL_CTX_GREP } : {}) },
   });
 }
 

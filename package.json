@@ -391,7 +391,7 @@
         "contexo.tree.showSessions": {
           "type": "boolean",
           "default": true,
-          "description": "Show the pending agent-session item in the Knowledge view."
+          "description": "Show the Sessions group (raw agent session notes) in the Knowledge view."
         }
       }
     },
@@ -458,9 +458,10 @@
     "test:unit": "npm run compile-tests && mocha --ui bdd --timeout 20000 --require out/test/helpers/vscodeStub.js \"out/test/unit/**/*.test.js\"",
     "pretest": "npm run compile && npm run compile-tests && node scripts/prepare-test-workspaces.mjs",
     "test": "vscode-test --label integration --label integration-stable --label integration-multi",
-    "test:e2e": "npm run pretest && vscode-test --label e2e",
+    "test:e2e": "npm run pretest && vscode-test --label e2e --label e2e-stable --label e2e-multi",
     "test:real-ctx": "npm run pretest && vscode-test --label real-ctx",
     "check:manifest": "node scripts/check-manifest.mjs",
+    "check:vsix": "node scripts/check-manifest.mjs --vsix",
     "contract:validate": "node contract/validate.mjs",
     "package": "vsce package --no-dependencies --out dist/"
   },

@@ -11,7 +11,7 @@ import type { IModel } from "./model/types";
 import { registerScm } from "./scm/scmProvider";
 import { createConfig, type Services } from "./services";
 import { registerStatusBar } from "./statusBar";
-import { createTestApi, type TestApi } from "./testApi";
+import { createTestApi, testHooks, type TestApi } from "./testApi";
 import { registerKnowledgeTree } from "./tree/knowledgeTree";
 import { createPrompts, type Prompts } from "./ui/prompts";
 import { registerContextKeys } from "./welcome/contextKeys";
@@ -68,6 +68,7 @@ function livePrompts(current: () => Prompts): Prompts {
 }
 
 export function activate(context: vscode.ExtensionContext): TestApi | undefined {
+  const startedAt = performance.now();
   const log = vscode.window.createOutputChannel("Contexo", { log: true });
   const config = createConfig();
   const prompts = createPrompts();
@@ -109,6 +110,8 @@ export function activate(context: vscode.ExtensionContext): TestApi | undefined 
   if (context.extensionMode !== vscode.ExtensionMode.Test) {
     return undefined;
   }
+  const timing = { activateMs: performance.now() - startedAt, activatedAt: Date.now() };
+  testHooks.activationTiming = () => ({ ...timing });
   return createTestApi(services, {
     overrideServices: async (o) => {
       if (o.model) {

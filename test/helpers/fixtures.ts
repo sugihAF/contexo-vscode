@@ -92,8 +92,9 @@ export function matchTokens(argv: readonly string[]): string[] {
 
 /**
  * First rule whose match tokens are all in argv (minus the -m value) and whose unless
- * tokens are not; else the default, except for `version`, which never uses the default
- * (fake-ctx.mjs then answers with its built-in handshake; this returns undefined).
+ * tokens are not; else the default, except for `version`, `auth login`, `init` and `update`,
+ * which never use the default (fake-ctx.mjs then answers with its built-in; this returns
+ * undefined).
  */
 export function selectRule(scenario: Scenario, argv: readonly string[]): ScenarioOutput | undefined {
   const tokens = matchTokens(argv);
@@ -102,17 +103,29 @@ export function selectRule(scenario: Scenario, argv: readonly string[]): Scenari
       return rule;
     }
   }
-  return argv[0] === "version" ? undefined : scenario.default;
+  return argv[0] === "version" || builtinInteractiveLine(argv) !== undefined ? undefined : scenario.default;
+}
+
+/** fake-ctx.mjs's built-in stdout line for `auth login`, `init` and `update` (WP-2.3), else undefined. */
+export function builtinInteractiveLine(argv: readonly string[]): string | undefined {
+  if (argv[0] === "auth" && argv[1] === "login") { return "fake-ctx: logged in\n"; }
+  if (argv[0] === "init") { return "fake-ctx: initialized\n"; }
+  if (argv[0] === "update") { return "fake-ctx: ctx is up to date\n"; }
+  return undefined;
 }
 
 /**
  * What the fake ctx would print for argv (no delay, no `then`), including its built-in
- * handshake for a `version --json` / `version --short` the scenario has no rule for.
+ * handshake for a `version --json` / `version --short` and its `auth login` / `init` /
+ * `update` line for one the scenario has no rule for.
  * undefined when the fake would fail with its internal 'no rule' envelope.
  */
 export function scenarioOutput(name: string, argv: readonly string[]): { stdout: string; stderr: string; exit: number } | undefined {
   const rule = selectRule(loadScenario(name), argv);
-  if (!rule) { return builtinVersionOutput(argv); }
+  if (!rule) {
+    const line = builtinInteractiveLine(argv);
+    return line === undefined ? builtinVersionOutput(argv) : { stdout: line, stderr: "", exit: 0 };
+  }
   return {
     stdout: readText(name, rule.stdout, rule.stdoutFile),
     stderr: readText(name, rule.stderr, rule.stderrFile),

@@ -1,0 +1,10 @@
+{
+  "rules": [
+    {"match":["status","--json"],"unless":["--offline"],"stdoutFile":"../mixed/status.json"},
+    {"match":["status","--offline"],"stdoutFile":"../mixed-offline/status.json"},
+    {"match":["show","wiki/concepts/auth-flow.md","--at","base"],"stdoutFile":"../mixed/show/auth-flow.base.md"},
+    {"match":["show","wiki/concepts/auth-flow.md","--at","server"],"stdoutFile":"../mixed/show/auth-flow.server.md"},
+    {"match":["push"],"stdoutFile":"../e7-ready/push.json","delayMs":1500},
+    {"match":["pull"],"stdoutFile":"../e7-ready/pull.json"}
+  ]
+}

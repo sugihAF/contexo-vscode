@@ -75,6 +75,14 @@ export interface DecorationSnapshot {
 export interface StatusBarItemSnapshot { id: string; text: string; tooltip?: string; command?: string; }
 export interface StatusBarSnapshot { items: StatusBarItemSnapshot[]; }
 
+/** How long activate() took (WP-2.3 perf budget), measured inside activate(). */
+export interface ActivationTiming {
+  /** performance.now() at the end of activate() minus performance.now() at its start. */
+  activateMs: number;
+  /** Date.now() when activate() finished (comparable with the fake ctx's epoch-ms call timestamps). */
+  activatedAt: number;
+}
+
 export interface SnapshotHooks {
   scmSnapshot(): ScmSnapshot;
   treeSnapshot(): TreeSnapshot;
@@ -85,6 +93,11 @@ export interface SnapshotHooks {
    * provideOriginalResource(uri); undefined when no repository owns it (WP-1.9).
    */
   quickDiffOriginal(uri: Uri): Uri | undefined | Promise<Uri | undefined>;
+  /**
+   * The timing of this activation (WP-2.3; set by extension.ts activate()). Optional so that
+   * existing full SnapshotHooks literals stay valid (additions only).
+   */
+  activationTiming?(): ActivationTiming;
 }
 
 /** Every SnapshotHooks member: the compiler rejects a missing or an unknown key. */
@@ -94,6 +107,7 @@ const SNAPSHOT_HOOK_KEYS: Record<keyof SnapshotHooks, true> = {
   decorationFor: true,
   statusBarSnapshot: true,
   quickDiffOriginal: true,
+  activationTiming: true,
 };
 
 export type TestHooks = {

@@ -1,7 +1,7 @@
 // VS Code host test labels for @vscode/test-cli (WP-0.6). `npm test` runs integration
 // (VS Code 1.100.0, the engines minimum), integration-stable and integration-multi, one
-// after another; test:e2e runs e2e (WP-2.3); test:real-ctx runs real-ctx (WP-3.1), which
-// exists only when REAL_CTX_ALICE is set.
+// after another; test:e2e runs e2e (1.100.0), e2e-stable and e2e-multi (WP-2.3), one after
+// another; test:real-ctx runs real-ctx (WP-3.1), which exists only when REAL_CTX_ALICE is set.
 //
 // - VS Code downloads go to ONE shared cache: $CONTEXO_VSCODE_TEST_CACHE, else
 //   <os.tmpdir()>/contexo-vscode-test-cache. Sessions with a per-session TMPDIR should
@@ -19,7 +19,16 @@
 //   [<abs test/fake-ctx/fake-ctx.mjs>]}, which the extension honours only in
 //   ExtensionMode.Test (WP-1.7). Workspaces are the copies `npm run pretest` makes under
 //   .vscode-test/workspaces/ (scripts/prepare-test-workspaces.mjs), never the fixtures.
-import { mkdirSync } from "node:fs";
+// - e2e labels (WP-2.3) do not share those copies: when this file loads, every SELECTED e2e
+//   label gets a fresh copy of test/fixtures/workspaces under .vscode-test/w/<short> (calls.jsonl
+//   dropped), plus env CONTEXO_DISTILL_DISABLE=1 (E26: the extension must strip it from every
+//   spawn), FAKE_CTX_TIMESTAMPS=1 (start/end per call) and FAKE_CTX_CALLS=<copy>/version-calls.jsonl
+//   (`version` carries no --root). Files: out/test/e2e/*.test.js (e2e, e2e-stable) and
+//   out/test/e2e/multi/**/*.test.js (e2e-multi).
+// - TDD lanes: CONTEXO_E2E_LANE=<name> suffixes the e2e profile and copy dirs, and
+//   CONTEXO_E2E_OUT=<dir> (relative to the repo) replaces out/ in the e2e globs, so two lanes
+//   can run e2e hosts in one worktree at the same time.
+import { cpSync, mkdirSync, rmSync } from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -50,6 +59,34 @@ const FAKE_CTX_ENV = {
 
 const MOCHA = { ui: "bdd", timeout: 20000 };
 
+const E2E_LANE = process.env.CONTEXO_E2E_LANE ? `-${process.env.CONTEXO_E2E_LANE}` : "";
+const E2E_OUT = process.env.CONTEXO_E2E_OUT ?? "out";
+
+/** Where an e2e label's private workspace copies live (made fresh when the label is selected). */
+function e2eCopyDir(short) {
+  return path.join(TEST_DIR, "w", `${short}${E2E_LANE}`);
+}
+
+/** An e2e label: own profile, own workspace copies, the E26/timestamp env. */
+function e2eConfig(label, version, short, files, workspace) {
+  const copy = e2eCopyDir(short);
+  return {
+    label,
+    version,
+    files: `${E2E_OUT}/test/e2e/${files}`,
+    workspaceFolder: path.join(copy, ...workspace),
+    launchArgs: profileArgs(`${short}${E2E_LANE}`),
+    env: {
+      ...FAKE_CTX_ENV,
+      CONTEXO_DISTILL_DISABLE: "1",
+      FAKE_CTX_TIMESTAMPS: "1",
+      FAKE_CTX_CALLS: path.join(copy, "version-calls.jsonl"),
+    },
+    mocha: { ...MOCHA, timeout: 60000 },
+    e2eCopy: copy,
+  };
+}
+
 /** The configurations, without useInstallation (added below for the selected ones). */
 const configs = [
   {
@@ -79,16 +116,9 @@ const configs = [
     env: FAKE_CTX_ENV,
     mocha: MOCHA,
   },
-  {
-    // WP-2.3 adds the tests.
-    label: "e2e",
-    version: "stable",
-    files: "out/test/e2e/**/*.test.js",
-    workspaceFolder: path.join(WORKSPACES, "basic"),
-    launchArgs: profileArgs("e"),
-    env: FAKE_CTX_ENV,
-    mocha: MOCHA,
-  },
+  e2eConfig("e2e", MIN_VSCODE, "e", "*.test.js", ["basic"]),
+  e2eConfig("e2e-stable", "stable", "f", "*.test.js", ["basic"]),
+  e2eConfig("e2e-multi", "stable", "g", "multi/**/*.test.js", ["multi", "multi.code-workspace"]),
 ];
 
 if (process.env.REAL_CTX_ALICE) {
@@ -135,7 +165,15 @@ const selected = labels.length > 0 && labels.every((l) => configs.some((c) => c.
   : configs;
 for (const c of selected) {
   if (codeVersion) { c.version = codeVersion; }
+  if (c.e2eCopy) {
+    rmSync(c.e2eCopy, { recursive: true, force: true });
+    cpSync(path.join(ROOT, "test", "fixtures", "workspaces"), c.e2eCopy, {
+      recursive: true,
+      filter: (src) => path.basename(src) !== "calls.jsonl",
+    });
+  }
 }
+for (const c of configs) { delete c.e2eCopy; }
 
 mkdirSync(CACHE, { recursive: true }); // test-electron creates only the last path segment
 const executables = new Map();

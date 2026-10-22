@@ -1,0 +1,32 @@
+{
+  "schema": "ctx.push.v1",
+  "dry_run": false,
+  "message": "Save then push",
+  "server_url": "http://127.0.0.1:9",
+  "repo_id": "fixture-repo",
+  "new_head": "8e1f3c5a9b2d4e6f8a0c1e3b5d7f9a2c4e6b8d0f",
+  "pushed": [
+    {
+      "path": "wiki/analyses/sync-model.md",
+      "kind": "create",
+      "sha": "8e1f3c5a9b2d4e6f8a0c1e3b5d7f9a2c4e6b8d0f"
+    },
+    {
+      "path": "wiki/concepts/auth-flow.md",
+      "kind": "update",
+      "sha": "8e1f3c5a9b2d4e6f8a0c1e3b5d7f9a2c4e6b8d0f"
+    },
+    {
+      "path": "wiki/entities/gitstore.md",
+      "kind": "update",
+      "sha": "8e1f3c5a9b2d4e6f8a0c1e3b5d7f9a2c4e6b8d0f"
+    }
+  ],
+  "conflicts": [],
+  "skipped": [],
+  "distill": {
+    "required": false,
+    "bypassed": false
+  },
+  "warnings": []
+}

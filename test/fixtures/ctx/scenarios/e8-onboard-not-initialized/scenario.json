@@ -1,0 +1,6 @@
+{
+  "rules": [
+
+  ],
+  "default": {"exit":5,"stderrFile":"../not-initialized/not_initialized.stderr"}
+}

@@ -1,0 +1,5 @@
+{
+  "rules": [
+    {"match":["version","--json"],"stdoutFile":"version.json"}
+  ]
+}

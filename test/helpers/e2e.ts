@@ -17,11 +17,16 @@
 //   version>, no CONTEXO_DISTILL_DISABLE) and no --no-distill. A violation fails that test
 //   (this.test.error) without aborting the run.
 // - No sleeps: every wait is waitFor/holdsFor with a fixed bound.
+// - Shared state a reset does NOT restore: <root>/.contexo/.sync (ctx's own tree; a test that
+//   writes there removes what it wrote), the extension's contexo: content cache (keyed by page
+//   version: a test that asserts a `ctx show` should use versions no other scenario serves),
+//   and the system clipboard (E2EPrompts.copyToClipboard writes the real one).
 import * as assert from "node:assert/strict";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import * as vscode from "vscode";
 import { ctxArgv } from "../../src/cli/spawn";
+import { LAST_CTX_VERSION_KEY, ctxVersionKey } from "../../src/commands/session";
 import type { ResolveStrategy, StatusDoc } from "../../src/contract/types";
 import type { IRepository } from "../../src/model/types";
 import type { ScmGroupSnapshot, ScmRepoSnapshot, TestApi } from "../../src/testApi";
@@ -314,12 +319,13 @@ function matches(text: string, match: string | RegExp): boolean {
 
 /**
  * Poll `pred` for `ms` and fail as soon as it is falsy (a bounded "nothing happens" check;
- * not a sleep: it watches the whole window).
+ * not a sleep: it watches the whole window). A function message is evaluated on failure, so
+ * it can show the state that broke the predicate (e.g. () => JSON.stringify(w.calls())).
  */
-export async function holdsFor(pred: () => boolean, ms: number, message: string): Promise<void> {
+export async function holdsFor(pred: () => boolean, ms: number, message: string | (() => string)): Promise<void> {
   const deadline = Date.now() + ms;
   for (;;) {
-    if (!pred()) { throw new Error(`holdsFor: ${message}`); }
+    if (!pred()) { throw new Error(`holdsFor: ${typeof message === "function" ? message() : message}`); }
     const left = deadline - Date.now();
     if (left <= 0) { return; }
     await new Promise<void>((resolve) => setTimeout(resolve, Math.min(50, left)));
@@ -416,12 +422,19 @@ export async function openWorkspaceCopy(o: { scenario?: string; root?: string; s
     });
     startup = { calls: readCalls(), timing: api.hooks.activationTiming?.() };
     originals = { cli: api.services.cli, model: api.services.model };
+    // The E37 first-run notice of this activation (WP-1.12) must not land in the first
+    // test's prompts stub: wait until it has been decided (the key is stored before it shows).
+    const binary = await api.services.cli.getBinary();
+    if (binary.kind === "ok") {
+      const key = ctxVersionKey(binary.version);
+      await waitFor(() => api.services.context.globalState.get(LAST_CTX_VERSION_KEY) === key, {
+        timeoutMs: 15000, message: "the activation's E37 notice was decided",
+      });
+    }
   }
   if (originals && (api.services.cli !== originals.cli || api.services.model !== originals.model)) {
     await api.hooks.resetServices();
   }
-  const prompts = new E2EPrompts();
-  api.hooks.setPrompts(prompts);
   await revertAndCloseEditors();
   for (const r of roots) {
     syncTree(fixtureOf(r), r);
@@ -429,6 +442,10 @@ export async function openWorkspaceCopy(o: { scenario?: string; root?: string; s
     if (wanted !== undefined) { setScenario(r, wanted); }
   }
   await settle(api);
+  // Installed after the reset went quiet, so prompts left over from the previous test (or
+  // the activation) land in the previous stub, never in this test's.
+  const prompts = new E2EPrompts();
+  api.hooks.setPrompts(prompts);
   await waitFor(() => api.services.model.state !== "loading", { timeoutMs: 15000, message: "model left loading" });
   await api.services.model.refreshAll({ remote: true });
   await settle(api);

@@ -1,0 +1,9 @@
+{
+  "rules": [
+    {"match":["status","--json"],"unless":["--offline"],"stdoutFile":"../e7-resolve/status.json"},
+    {"match":["status","--offline"],"stdoutFile":"../e7-resolve/status-offline.json"},
+    {"match":["show","wiki/concepts/rate-limits.md","--at","server"],"stdoutFile":"../mixed/show/rate-limits.server.md"},
+    {"match":["show","wiki/concepts/rate-limits.md","--at","base"],"stdoutFile":"../mixed/show/rate-limits.base.md"},
+    {"match":["resolve","wiki/concepts/rate-limits.md"],"exit":6,"stderrFile":"../e7-stale/stale.stderr","then":"e8-stale-after"}
+  ]
+}

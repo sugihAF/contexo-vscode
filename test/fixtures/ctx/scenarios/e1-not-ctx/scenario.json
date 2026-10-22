@@ -1,0 +1,8 @@
+{
+  "rules": [
+    {"match":["version","--json"],"exit":2,"stderr":"ctx: unknown option --json\nusage: ctx [-v] <file>\n"},
+    {"match":["version","--short"],"exit":2,"stderr":"ctx: unknown option --short\nusage: ctx [-v] <file>\n"},
+    {"match":["version"],"stdout":"ctx (context switcher) build 2019\n"}
+  ],
+  "default": {"exit":2,"stderr":"usage: ctx [-v] <file>\n"}
+}

@@ -1,0 +1,9 @@
+{
+  "rules": [
+    {"match":["version","--json"],"delayMs":3000,"stdoutFile":"../../../../fake-ctx/builtin-version.json"},
+    {"match":["version","--short"],"delayMs":3000,"stdout":"0.7.0\n"},
+    {"match":["status","--json"],"unless":["--offline"],"delayMs":3000,"stdoutFile":"../mixed/status.json"},
+    {"match":["status","--offline"],"delayMs":3000,"stdoutFile":"../mixed-offline/status.json"}
+  ],
+  "default": {"delayMs":3000}
+}

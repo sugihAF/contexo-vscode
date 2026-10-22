@@ -1,0 +1,13 @@
+{
+  "rules": [
+    {"match":["status","--json"],"unless":["--offline"],"stdoutFile":"../mixed/status.json"},
+    {"match":["status","--offline"],"stdoutFile":"../mixed-offline/status.json"},
+    {"match":["show","wiki/concepts/crlf-bom.md","--at","base"],"stdoutFile":"show/crlf-bom.base.md"},
+    {"match":["show","wiki/concepts/auth-flow.md","--at","base"],"stdoutFile":"../mixed/show/auth-flow.base.md"},
+    {"match":["show","wiki/concepts/auth-flow.md","--at","server"],"stdoutFile":"../mixed/show/auth-flow.server.md"},
+    {"match":["show","wiki/concepts/retry-policy.md","--at","base"],"stdoutFile":"../../../contract/v1/raw/retry-policy.base.md"},
+    {"match":["show","wiki/concepts/retry-policy.md","--at","server"],"stdoutFile":"../../../contract/v1/raw/retry-policy.server.md"},
+    {"match":["show","--at","base"],"exit":8,"stderrFile":"../mixed/base_unavailable.stderr"},
+    {"match":["show"],"exit":8,"stderrFile":"../mixed/page_not_found.stderr"}
+  ]
+}

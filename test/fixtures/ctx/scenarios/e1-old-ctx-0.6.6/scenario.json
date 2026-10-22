@@ -1,0 +1,9 @@
+{
+  "rules": [
+    {"match":["version","--json"],"exit":1,"stderrFile":"../ctx-too-old/unknown_flag.stderr"},
+    {"match":["version","--short"],"stdout":"0.6.6\n"},
+    {"match":["status","--json"],"unless":["--offline"],"stdoutFile":"../mixed/status.json"},
+    {"match":["status","--offline"],"stdoutFile":"../mixed-offline/status.json"}
+  ],
+  "default": {"exit":1,"stderrFile":"../ctx-too-old/unknown_flag.stderr"}
+}

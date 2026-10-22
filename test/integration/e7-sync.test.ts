@@ -47,6 +47,7 @@ import { FakeCtxCli } from "../helpers/fakeCtxCli";
 import { fakeModel } from "../helpers/fakeModel";
 import { fakeRepository, type FakeRepository } from "../helpers/fakeRepository";
 import { loadStatusDoc, scenarioDir, scenarioOutput } from "../helpers/fixtures";
+import { waitFor } from "../helpers/waitFor";
 
 const SYNC_MODEL = "wiki/analyses/sync-model.md";
 const AUTH_FLOW = "wiki/concepts/auth-flow.md";
@@ -384,7 +385,9 @@ describe("e7 sync commands (WP-1.13)", () => {
     const edit = new vscode.WorkspaceEdit();
     edit.insert(uri, doc.positionAt(doc.getText().length), UNSAVED_MARKER);
     assert.equal(await vscode.workspace.applyEdit(edit), true, "the edit applies");
-    assert.equal(doc.isDirty, true, `${relPath} is dirty`);
+    // D5 (WP-2.I, L25): applyEdit can resolve before the extension host sees the dirty flag
+    // (macOS CI flake), so wait for it instead of asserting it once.
+    await waitFor(() => doc.isDirty && doc.getText().endsWith(UNSAVED_MARKER), { timeoutMs: 5000, message: `${relPath} is dirty` });
     return doc;
   }
 

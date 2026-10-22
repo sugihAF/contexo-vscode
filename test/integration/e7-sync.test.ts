@@ -400,12 +400,20 @@ describe("e7 sync commands (WP-1.13)", () => {
     sinon.restore();
     for (const d of disposables.splice(0)) { d.dispose(); }
     for (const t of touched.splice(0)) {
-      const doc = vscode.workspace.textDocuments.find((d) => d.uri.toString() === t.uri.toString());
-      if (doc && !doc.isClosed) {
-        await vscode.window.showTextDocument(doc);
-        await vscode.commands.executeCommand("workbench.action.revertAndCloseActiveEditor");
+      // Restore through the document, never by writing the file behind VS Code's back: a
+      // cached TextDocument would then be older than the disk, and the next test's save
+      // (or edit) of the same page fails with a 'file is newer' conflict.
+      const original = t.original.toString("utf8");
+      const doc = await vscode.workspace.openTextDocument(t.uri);
+      if (doc.getText() !== original) {
+        const edit = new vscode.WorkspaceEdit();
+        edit.replace(t.uri, new vscode.Range(doc.positionAt(0), doc.positionAt(doc.getText().length)), original);
+        assert.equal(await vscode.workspace.applyEdit(edit), true, `restore ${t.uri.fsPath}`);
       }
-      if (!fs.readFileSync(t.uri.fsPath).equals(t.original)) { fs.writeFileSync(t.uri.fsPath, t.original); }
+      if (doc.isDirty) { assert.equal(await doc.save(), true, `save ${t.uri.fsPath}`); }
+      await vscode.window.showTextDocument(doc);
+      await vscode.commands.executeCommand("workbench.action.closeActiveEditor");
+      assert.ok(fs.readFileSync(t.uri.fsPath).equals(t.original), `${t.uri.fsPath} is restored on disk`);
     }
     await api.hooks.resetServices();
   });

@@ -1,6 +1,7 @@
 // Interactive ctx commands (auth login, init, update) in a VS Code terminal (WP-1.12).
 // ctx itself is the terminal process (shellPath = ctx, no shell); when it exits the
-// extension refreshes every repository. The terminal stays open so the user can read it.
+// extension refreshes every repository. The extension never closes the terminal; VS Code
+// closes it by itself when ctx exits with 0, and keeps it open after a failure.
 import * as vscode from "vscode";
 import type { TerminalInvocation } from "./cli/types";
 import type { Services } from "./services";

@@ -7,8 +7,8 @@
 // Usage: node scripts/prepare-test-workspaces.mjs [--from <dir>] [--out <dir>]
 //   --from  source directory (default: test/fixtures/workspaces)
 //   --out   destination directory (default: .vscode-test/workspaces); removed first
-import { cpSync, existsSync, readdirSync, rmSync } from "node:fs";
-import { basename, dirname, isAbsolute, relative, resolve, sep } from "node:path";
+import { copyFileSync, existsSync, mkdirSync, readdirSync, rmSync } from "node:fs";
+import { basename, dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -46,7 +46,28 @@ if (within(from, out) || within(out, from) || within(out, REPO_ROOT)) {
   process.exit(2);
 }
 
+/**
+ * Copies the directory tree `src` to `dest` (files and directories only), skipping entries
+ * for which keep(path) is false. Deliberately not fs.cpSync: Node 22 copies directories
+ * natively (cpSyncCopyDir, std::filesystem), which on Windows mis-converts non-ASCII paths
+ * and left basic/.fake-ctx missing under 'C:\Users\RUNNER~1\...\contexo ws src é-…' (D4).
+ */
+function copyTree(src, dest, keep) {
+  mkdirSync(dest, { recursive: true });
+  for (const entry of readdirSync(src, { withFileTypes: true })) {
+    const s = join(src, entry.name);
+    if (!keep(s)) { continue; }
+    if (entry.isDirectory()) {
+      copyTree(s, join(dest, entry.name), keep);
+    } else if (entry.isFile()) {
+      copyFileSync(s, join(dest, entry.name));
+    } else {
+      throw new Error(`prepare-test-workspaces: ${s} is neither a file nor a directory`);
+    }
+  }
+}
+
 rmSync(out, { recursive: true, force: true });
-cpSync(from, out, { recursive: true, filter: (src) => basename(src) !== "calls.jsonl" });
+copyTree(from, out, (src) => basename(src) !== "calls.jsonl");
 const names = readdirSync(out).sort();
 console.log(`prepare-test-workspaces: ${names.join(", ")} -> ${out}`);

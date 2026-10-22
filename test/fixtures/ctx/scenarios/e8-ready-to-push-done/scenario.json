@@ -1,0 +1,11 @@
+{
+  "rules": [
+    {"match":["status","--json"],"unless":["--offline"],"stdoutFile":"status.json"},
+    {"match":["status","--offline"],"stdoutFile":"status-offline.json"},
+    {"match":["show","wiki/analyses/sync-model.md","--at","base"],"stdoutFile":"../../../workspaces/basic/.contexo/wiki/analyses/sync-model.md"},
+    {"match":["show","wiki/concepts/auth-flow.md","--at","base"],"stdoutFile":"../../../workspaces/basic/.contexo/wiki/concepts/auth-flow.md"},
+    {"match":["show","wiki/entities/gitstore.md","--at","base"],"stdoutFile":"../../../workspaces/basic/.contexo/wiki/entities/gitstore.md"},
+    {"match":["show","--at","base"],"exit":8,"stderrFile":"../mixed/base_unavailable.stderr"},
+    {"match":["show"],"exit":8,"stderrFile":"../mixed/page_not_found.stderr"}
+  ]
+}

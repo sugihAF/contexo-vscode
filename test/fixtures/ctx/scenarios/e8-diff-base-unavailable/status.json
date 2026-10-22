@@ -1,0 +1,355 @@
+{
+  "schema": "ctx.status.v1",
+  "generated_at": "2026-10-15T09:30:00Z",
+  "offline": false,
+  "root": "/fixture-root",
+  "contexo_dir": "/fixture-root/.contexo",
+  "project": {
+    "repo_id": "fixture-repo",
+    "config_server_url": "http://127.0.0.1:9",
+    "dashboard_url": "https://app.contexo.live",
+    "dashboard_page_url_template": "https://app.contexo.live/repos/fixture-repo/page/{path}",
+    "last_pull_sha": "ce2a9f529f48361edae08acbe64c325f296f92e7"
+  },
+  "server": {
+    "url": "http://127.0.0.1:9",
+    "url_source": "config",
+    "version": "0.7.0",
+    "capabilities_known": true,
+    "capabilities": [
+      "pages.at",
+      "push.expect_absent",
+      "write.path_sha"
+    ]
+  },
+  "auth": {
+    "state": "authenticated",
+    "credentials_source": "project",
+    "token_kind": "pat",
+    "user_name": "Alice Tan",
+    "user_email": "alice@example.com"
+  },
+  "remote": {
+    "source": "live",
+    "fetched_at": "2026-10-15T09:30:00Z",
+    "repo_exists": true,
+    "head": "79295977d33fb9999f0e2ae8fb77aa43baec243f",
+    "page_count": 9
+  },
+  "counts": {
+    "unchanged": 2,
+    "modified": 1,
+    "new": 1,
+    "incoming": 1,
+    "incoming_new": 1,
+    "conflict": 1,
+    "deleted_local": 1,
+    "invalid": 1,
+    "unverified": 1,
+    "ahead": 2,
+    "behind": 2
+  },
+  "pages": [
+    {
+      "path": "raw/sessions/2026-10-01-login-debug.md",
+      "state": "unchanged",
+      "type": "source",
+      "slug": "2026-10-01-login-debug",
+      "title": "Login debug session",
+      "tags": [
+        "auth",
+        "debugging"
+      ],
+      "author": "alice",
+      "agent": "claude-code",
+      "updated": "2026-10-01T09:40:00Z",
+      "reasoning_summary": "Traced the login redirect loop to a refresh token the client kept replaying.",
+      "local": {
+        "file": "raw/sessions/2026-10-01-login-debug.md",
+        "hash": "sha256:29fc1be7ce85e8d71109d72d1cc5f4fb2fb82b2d5f8b9b732feb918993690375"
+      },
+      "base": {
+        "sha": "615b55dd4a296b5e2e9fdc0834ab4f7fd9d21198",
+        "hash": "sha256:29fc1be7ce85e8d71109d72d1cc5f4fb2fb82b2d5f8b9b732feb918993690375",
+        "synced_at": "2026-10-01T09:45:13Z",
+        "stale": false
+      },
+      "remote": {
+        "sha": "615b55dd4a296b5e2e9fdc0834ab4f7fd9d21198",
+        "author": "Alice Tan",
+        "email": "alice@example.com",
+        "time": "2026-10-01T09:45:12Z",
+        "message": "ctx push (1 pages)"
+      },
+      "notes": []
+    },
+    {
+      "path": "wiki/analyses/sync-model.md",
+      "state": "new",
+      "type": "analysis",
+      "slug": "sync-model",
+      "title": "Sync model",
+      "tags": [
+        "sync",
+        "architecture"
+      ],
+      "author": "alice",
+      "agent": "claude-code",
+      "updated": "2026-10-15T08:40:00Z",
+      "reasoning_summary": "A three-way comparison (base, local, server) is the only way to tell a local edit from an incoming change.",
+      "local": {
+        "file": "wiki/analyses/sync-model.md",
+        "hash": "sha256:44d455fa05e4e98c8e620f40882368bd6521099085ef69fcd5cdae42fdcbc226"
+      },
+      "notes": []
+    },
+    {
+      "path": "wiki/concepts/auth-flow.md",
+      "state": "modified",
+      "type": "concept",
+      "slug": "auth-flow",
+      "title": "Auth flow",
+      "tags": [
+        "auth",
+        "security"
+      ],
+      "author": "alice",
+      "agent": "claude-code",
+      "updated": "2026-10-15T08:58:00Z",
+      "reasoning_summary": "Short-lived access tokens plus rotating refresh tokens; the dashboard never keeps either in localStorage.",
+      "local": {
+        "file": "wiki/concepts/auth-flow.md",
+        "hash": "sha256:3d05989614144f708c590915ed221a3babf4c12da95a8cda919424da5e884c79"
+      },
+      "base": {
+        "sha": "0e8b0a7e1d2c3b4a5968778695a4b3c2d1e0f9a8",
+        "hash": "sha256:9d68143db9167d21de51d9f0032ede4ea97579cdeaa530b7f8bd3a6b08b27e53",
+        "synced_at": "2026-10-08T14:02:32Z",
+        "stale": false
+      },
+      "remote": {
+        "sha": "621e7ef3a95e6c78a5687a53721c937b6d258ebd",
+        "author": "Alice Tan",
+        "email": "alice@example.com",
+        "time": "2026-10-08T14:02:31Z",
+        "message": "ctx push (2 pages)"
+      },
+      "notes": []
+    },
+    {
+      "path": "wiki/concepts/broken.md",
+      "state": "invalid",
+      "tags": [],
+      "local": {
+        "file": "wiki/concepts/broken.md"
+      },
+      "base": {
+        "sha": "ce2a9f529f48361edae08acbe64c325f296f92e7",
+        "hash": "sha256:3297b0ebae1616d6ca772c794e98cb125f76ae1af2fa7a67e980fd5c539f9867",
+        "synced_at": "2026-10-10T11:20:06Z",
+        "stale": false
+      },
+      "remote": {
+        "sha": "ce2a9f529f48361edae08acbe64c325f296f92e7",
+        "author": "Alice Tan",
+        "email": "alice@example.com",
+        "time": "2026-10-10T11:20:05Z",
+        "message": "ctx push (1 pages)"
+      },
+      "invalid": {
+        "stage": "parse",
+        "message": "page: parse frontmatter: yaml: line 9: found unexpected end of stream"
+      },
+      "notes": []
+    },
+    {
+      "path": "wiki/concepts/legacy-sync.md",
+      "state": "unverified",
+      "type": "concept",
+      "slug": "legacy-sync",
+      "title": "Legacy sync",
+      "tags": [
+        "sync",
+        "migration"
+      ],
+      "author": "alice",
+      "agent": "claude-code",
+      "updated": "2026-10-12T16:40:00Z",
+      "reasoning_summary": "Old ctx and MCP binaries move page_shas without writing a base; the next online status repairs the base.",
+      "local": {
+        "file": "wiki/concepts/legacy-sync.md",
+        "hash": "sha256:f5956f6cf8aec808112e677b8d0ce827d87c056e937f8c3703587a7dd5ffd26e"
+      },
+      "base": {
+        "sha": "432b25e195f3ba58a21c76f4cb59132b1741841f",
+        "stale": true
+      },
+      "remote": {
+        "sha": "432b25e195f3ba58a21c76f4cb59132b1741841f",
+        "author": "Alice Tan",
+        "email": "alice@example.com",
+        "time": "2026-10-12T16:41:09Z",
+        "message": "Agent push: legacy sync notes"
+      },
+      "notes": []
+    },
+    {
+      "path": "wiki/concepts/old-name.md",
+      "state": "deleted_local",
+      "tags": [],
+      "base": {
+        "sha": "6cdaea343dff8071da0bca651f4f201d0f471f61",
+        "hash": "sha256:8d77a11689f139af160b53940ff30d7347080778911988eefc1cb807158043cb",
+        "synced_at": "2026-09-22T10:15:41Z",
+        "stale": false
+      },
+      "remote": {
+        "sha": "6cdaea343dff8071da0bca651f4f201d0f471f61",
+        "author": "Alice Tan",
+        "email": "alice@example.com",
+        "time": "2026-09-22T10:15:40Z",
+        "message": "ctx push (3 pages)"
+      },
+      "notes": []
+    },
+    {
+      "path": "wiki/concepts/rate-limits.md",
+      "state": "conflict",
+      "conflict_kind": "both_modified",
+      "type": "concept",
+      "slug": "rate-limits",
+      "title": "Rate limits",
+      "tags": [
+        "api",
+        "limits"
+      ],
+      "author": "alice",
+      "agent": "claude-code",
+      "updated": "2026-10-15T09:05:00Z",
+      "reasoning_summary": "Per-IP limits protect the hosted API; clients back off on 429.",
+      "local": {
+        "file": "wiki/concepts/rate-limits.md",
+        "hash": "sha256:2f2b5ba5dd5c18abe4f528dcd483b1c9dfe12aa64ba5d463d9077a285a2d4ecb"
+      },
+      "base": {
+        "sha": "5f11c75e91a8738813fdcd33ff41f9ddbb665e2d",
+        "hash": "sha256:d7ffbba102efb2465ed9f7f93a666f47a2225ec803771a56ac316dedb92b9f12",
+        "synced_at": "2026-10-06T09:00:01Z",
+        "stale": false
+      },
+      "remote": {
+        "sha": "a8f6897201450db5da7dc1ef07acb171871935db",
+        "author": "Bob Lee",
+        "email": "bob@example.com",
+        "time": "2026-10-14T17:30:44Z",
+        "message": "Lower the burst ceiling"
+      },
+      "notes": []
+    },
+    {
+      "path": "wiki/concepts/retry-policy.md",
+      "state": "incoming",
+      "type": "concept",
+      "slug": "retry-policy",
+      "title": "Retry policy",
+      "tags": [
+        "api",
+        "retries"
+      ],
+      "author": "alice",
+      "agent": "claude-code",
+      "updated": "2026-10-05T13:05:00Z",
+      "reasoning_summary": "Retry idempotent calls only, with jittered backoff and a ceiling.",
+      "local": {
+        "file": "wiki/concepts/retry-policy.md",
+        "hash": "sha256:9340352adbf77edf22c190f84e48e65e7c65c966a581851fe566e5f2622b35a2"
+      },
+      "base": {
+        "sha": "c1f45d335e10d0fab135b7ee83ae86af4041a982",
+        "hash": "sha256:9340352adbf77edf22c190f84e48e65e7c65c966a581851fe566e5f2622b35a2",
+        "synced_at": "2026-10-05T13:10:01Z",
+        "stale": false
+      },
+      "remote": {
+        "sha": "94b52c8f9ade15c44e6750dfa93ff59529f19ec5",
+        "author": "Bob Lee",
+        "email": "bob@example.com",
+        "time": "2026-10-15T07:55:30Z",
+        "message": "Tighten retry ceilings"
+      },
+      "notes": []
+    },
+    {
+      "path": "wiki/entities/billing.md",
+      "state": "incoming_new",
+      "tags": [],
+      "remote": {
+        "sha": "79295977d33fb9999f0e2ae8fb77aa43baec243f",
+        "author": "Bob Lee",
+        "email": "bob@example.com",
+        "time": "2026-10-15T08:20:10Z",
+        "message": "Add billing entity"
+      },
+      "notes": []
+    },
+    {
+      "path": "wiki/entities/gitstore.md",
+      "state": "unchanged",
+      "type": "entity",
+      "slug": "gitstore",
+      "title": "Gitstore",
+      "tags": [
+        "server",
+        "storage"
+      ],
+      "author": "alice",
+      "updated": "2026-09-22T10:10:00Z",
+      "local": {
+        "file": "wiki/entities/gitstore.md",
+        "hash": "sha256:fe7e1b70af117e32ffa00a63d8acbb5b14a3ab2a04eb288f49040679d48d3fbc"
+      },
+      "base": {
+        "sha": "6cdaea343dff8071da0bca651f4f201d0f471f61",
+        "hash": "sha256:fe7e1b70af117e32ffa00a63d8acbb5b14a3ab2a04eb288f49040679d48d3fbc",
+        "synced_at": "2026-09-22T10:15:41Z",
+        "stale": false
+      },
+      "remote": {
+        "sha": "6cdaea343dff8071da0bca651f4f201d0f471f61",
+        "author": "Alice Tan",
+        "email": "alice@example.com",
+        "time": "2026-09-22T10:15:40Z",
+        "message": "ctx push (3 pages)"
+      },
+      "notes": []
+    }
+  ],
+  "captures": {
+    "pending": 2,
+    "fresh": 0,
+    "blocks_push": false,
+    "sessions": [
+      {
+        "session_id": "8f14e45f-ceea-4d7a-9b1c-3e2f1a0b9c8d",
+        "turns": 12,
+        "updated_at": "2026-10-14T16:05:12Z",
+        "fresh": false
+      },
+      {
+        "session_id": "c9f0f895-fb98-4b8e-8d71-0a1b2c3d4e5f",
+        "turns": 3,
+        "updated_at": "2026-10-13T11:20:45Z",
+        "fresh": false
+      }
+    ]
+  },
+  "warnings": [
+    {
+      "code": "base_repair_skipped",
+      "message": "1 page could not be verified against the server (another ctx held .sync/lock); it stays unverified",
+      "paths": [
+        "wiki/concepts/legacy-sync.md"
+      ]
+    }
+  ]
+}

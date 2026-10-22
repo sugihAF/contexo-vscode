@@ -12,6 +12,11 @@
 //   (CONTEXO_DISTILL_DISABLE only when present) is appended to <root>/.fake-ctx/calls.jsonl
 //   when root is an existing directory (.fake-ctx is created if needed; a missing root is
 //   never created), otherwise to the file named by env FAKE_CTX_CALLS, otherwise nowhere.
+// - Timestamps (WP-2.3; opt-in, so the default line keeps exactly argv, cwd, env): when env
+//   FAKE_CTX_TIMESTAMPS is set and not "0", the call line also carries "id" (unique per
+//   process) and "start" (Date.now() ms), and when the process exits a second line
+//   {"id":<same>,"end":<Date.now() ms>,"exit":<code>} is appended to the same file.
+//   test/helpers/e2e.ts readCalls() pairs them.
 // - Scenario name = <root>/.fake-ctx/current (trimmed) when a root is given and that file
 //   exists, else env FAKE_CTX_SCENARIO, else the built-in handshake (which answers only
 //   `version --json`: contract 1 with the 11 v1 capabilities followed by 'repair'; and
@@ -25,6 +30,8 @@
 //   `version` never uses `default`: without an explicit version rule it gets the
 //   built-in handshake (`version --json` doc, `version --short` line), as real ctx
 //   answers version in any project state.
+//   The interactive terminal commands `auth login`, `init` and `update` (WP-2.3) do not use
+//   `default` either: without an explicit rule they print one line and exit 0.
 //   (test/helpers/fixtures.ts selectRule mirrors this; fakeCtx.test pins the agreement.)
 // - Answer: sleep delayMs, write stdout (inline or stdoutFile) and stderr (inline or
 //   stderrFile) as raw bytes, then exit with `exit` (default 0). Files are relative to the
@@ -37,6 +44,7 @@ import { fileURLToPath } from "node:url";
 const HERE = dirname(fileURLToPath(import.meta.url));
 const SCENARIOS_DIR = resolve(HERE, "..", "fixtures", "ctx", "scenarios");
 const RECORDED_ENV = ["NO_COLOR", "CONTEXO_NO_UPDATE_CHECK", "CONTEXO_CLIENT"];
+const TIMESTAMPS = process.env.FAKE_CTX_TIMESTAMPS !== undefined && process.env.FAKE_CTX_TIMESTAMPS !== "" && process.env.FAKE_CTX_TIMESTAMPS !== "0";
 
 /** `ctx version --json` of a current release build: test/fake-ctx/builtin-version.json (also read by
  *  test/helpers/fixtures.ts as BUILTIN_VERSION_DOC and by FakeCtxCli as FAKE_VERSION_DOC). */
@@ -58,7 +66,7 @@ function logCall() {
   const env = {};
   for (const k of RECORDED_ENV) { env[k] = process.env[k] ?? null; }
   if (process.env.CONTEXO_DISTILL_DISABLE !== undefined) { env.CONTEXO_DISTILL_DISABLE = process.env.CONTEXO_DISTILL_DISABLE; }
-  const line = `${JSON.stringify({ argv, cwd: process.cwd(), env })}\n`;
+  const record = { argv, cwd: process.cwd(), env };
   let file;
   if (root !== undefined && isDir(root)) {
     mkdirSync(join(root, ".fake-ctx"), { recursive: true });
@@ -67,7 +75,17 @@ function logCall() {
     file = process.env.FAKE_CTX_CALLS;
     mkdirSync(dirname(file), { recursive: true });
   }
-  if (file !== undefined) { appendFileSync(file, line); }
+  if (file === undefined) { return; }
+  if (TIMESTAMPS) {
+    const start = Date.now();
+    const id = `${process.pid}-${start}-${process.hrtime.bigint()}`;
+    Object.assign(record, { id, start });
+    // 'exit' listeners run synchronously after the answer is written (or after a crash).
+    process.on("exit", (code) => {
+      appendFileSync(file, `${JSON.stringify({ id, end: Date.now(), exit: code })}\n`);
+    });
+  }
+  appendFileSync(file, `${JSON.stringify(record)}\n`);
 }
 
 function envelope(code, exitCode, message) {
@@ -101,13 +119,35 @@ function matchTokens(args) {
   return out;
 }
 
+/** The commands that never use a scenario `default` (they have built-in answers). */
+function hasBuiltin() {
+  return argv[0] === "version" || interactiveBuiltin() !== undefined;
+}
+
 function selectRule(scenario) {
   const tokens = matchTokens(argv);
   for (const rule of scenario.rules ?? []) {
     const unless = rule.unless ?? [];
     if (rule.match.every((t) => tokens.includes(t)) && !unless.some((t) => tokens.includes(t))) { return rule; }
   }
-  return argv[0] === "version" ? undefined : scenario.default;
+  return hasBuiltin() ? undefined : scenario.default;
+}
+
+/** The stdout line of a built-in `auth login`, `init` or `update`, or undefined for any other argv. */
+function interactiveBuiltin() {
+  if (argv[0] === "auth" && argv[1] === "login") { return "fake-ctx: logged in\n"; }
+  if (argv[0] === "init") { return "fake-ctx: initialized\n"; }
+  if (argv[0] === "update") { return "fake-ctx: ctx is up to date\n"; }
+  return undefined;
+}
+
+/** The built-in answer (handshake or interactive command); true when it answered argv. */
+function builtin() {
+  if (builtinVersion()) { return true; }
+  const line = interactiveBuiltin();
+  if (line === undefined) { return false; }
+  process.stdout.write(line);
+  return true;
 }
 
 /** The built-in handshake; true when it answered argv. */
@@ -140,8 +180,8 @@ async function main() {
   logCall();
   const name = currentScenario();
   if (name === undefined) {
-    if (builtinVersion()) { return; }
-    fail(`no scenario (no <root>/.fake-ctx/current, no FAKE_CTX_SCENARIO); the built-in answers only 'version --json' and 'version --short', not ${JSON.stringify(argv)}`);
+    if (builtin()) { return; }
+    fail(`no scenario (no <root>/.fake-ctx/current, no FAKE_CTX_SCENARIO); the built-in answers only 'version --json', 'version --short', 'auth login', 'init' and 'update', not ${JSON.stringify(argv)}`);
     return;
   }
   const dir = join(SCENARIOS_DIR, name);
@@ -158,7 +198,7 @@ async function main() {
     return;
   }
   const rule = selectRule(scenario);
-  if (rule === undefined && builtinVersion()) { return; }
+  if (rule === undefined && builtin()) { return; }
   if (rule === undefined) {
     fail(`scenario '${name}' has no rule for argv ${JSON.stringify(argv)}`);
     return;

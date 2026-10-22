@@ -1,0 +1,7 @@
+{
+  "rules": [
+    {"match":["status","--json"],"unless":["--offline"],"stdoutFile":"../push-distill-required/status.json"},
+    {"match":["status","--offline"],"stdoutFile":"../push-distill-required/status-offline.json"},
+    {"match":["push"],"exit":9,"stderrFile":"../e7-distill-required/distill_required.stderr"}
+  ]
+}

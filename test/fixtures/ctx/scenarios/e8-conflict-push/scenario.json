@@ -1,0 +1,7 @@
+{
+  "rules": [
+    {"match":["status","--json"],"unless":["--offline"],"stdoutFile":"../e7-push-conflict/status.json"},
+    {"match":["status","--offline"],"stdoutFile":"../mixed-offline/status.json"},
+    {"match":["push"],"exit":6,"stdoutFile":"../e7-push-conflict/push.json","stderrFile":"../e7-push-conflict/conflict.stderr","then":"e8-conflict-after-push"}
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "rules": [
+    {"match":["status","--json"],"unless":["--offline"],"stdoutFile":"../e7-resolve/status.json"},
+    {"match":["status","--offline"],"stdoutFile":"../e7-resolve/status-offline.json"},
+    {"match":["resolve","wiki/concepts/rate-limits.md","--theirs"],"stdoutFile":"../e7-resolve/resolve.rate-limits.theirs.json","then":"e8-resolve-theirs-done"},
+    {"match":["resolve","wiki/concepts/retry-policy.md","--theirs"],"stdoutFile":"../e7-resolve/resolve.retry-policy.theirs.json","then":"e8-resolve-theirs-done"}
+  ]
+}

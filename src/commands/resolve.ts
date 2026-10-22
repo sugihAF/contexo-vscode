@@ -1,11 +1,13 @@
 // Keep Mine / Take Server Version / Restore Server Version (WP-1.13), through
 // `ctx resolve <path> --ours|--theirs --if-server-sha <the remote sha the user saw>`.
+import * as vscode from "vscode";
 import { CtxError } from "../cli/types";
 import type { PageEntry, PageState, ResolveStrategy } from "../contract/types";
 import type { IRepository } from "../model/types";
 import type { Services } from "../services";
 import { ensureSaved } from "./dirtyGuard";
 import { effectiveCode, errorActions, presentError, withBusyRetry } from "./errorActions";
+import { COMMAND_IDS } from "./ids";
 import { resolveRepo, selectedPages, selectionOf } from "./repoPicker";
 import { notify, withScmProgress } from "./sync";
 
@@ -68,7 +70,9 @@ const PER_PATH_CODES: ReadonlySet<string> = new Set(["stale", "not_resolvable", 
  * repo.run('resolve'), sequentially per path, cli.resolve(root, path, 'theirs', {ifServerSha:
  * page.remote.sha}). A page without remote.sha: one repo.refresh({remote: true}) first;
  * still missing -> skipped with unknownServerMessage. stale -> info staleMessage(path),
- * continue; not_resolvable (and page_not_found) -> a toast naming details.state, continue;
+ * continue, and once the run's online refresh is done the page's diff is re-opened
+ * (contexo.openChange; the contract error table: "refresh status and re-open the diff",
+ * WP-2.3); not_resolvable (and page_not_found) -> a toast naming details.state, continue;
  * busy -> one retry after 1 s; any other error stops the loop (presentError, whose [Retry]
  * runs the remaining paths with the same shas). Ends with a one-line summary.
  */
@@ -143,6 +147,7 @@ async function runResolve(s: Services, repo: IRepository, flow: ResolveFlow, tar
   const root = repo.root.fsPath;
   let done = 0;
   let skipped = 0;
+  const stale: string[] = [];
   let stop: { err: CtxError; remaining: Target[] } | undefined;
   await withScmProgress(flow === "ours" ? "Keeping your version" : "Taking the server version", () => repo.run("resolve", async () => {
     for (const [i, t] of targets.entries()) {
@@ -161,10 +166,23 @@ async function runResolve(s: Services, repo: IRepository, flow: ResolveFlow, tar
         skipped++;
         s.log.warn(`resolve ${t.path} --${strategy}: ${code}: ${err.message}`);
         // stale never retries silently: the diff the user reviewed is outdated.
-        if (code === "stale") { notify(s, "info", staleMessage(t.path)); } else { notify(s, "warning", `${t.path}: ${errorActions(err).message}`); }
+        if (code === "stale") {
+          stale.push(t.path);
+          notify(s, "info", staleMessage(t.path));
+        } else {
+          notify(s, "warning", `${t.path}: ${errorActions(err).message}`);
+        }
       }
     }
   }));
+  // repo.run has refreshed the status: show the user the new diff to review (never a retry).
+  for (const path of stale) {
+    try {
+      await vscode.commands.executeCommand(COMMAND_IDS.openChange, repo.fileUri(path));
+    } catch (err) {
+      s.log.warn(`re-opening the diff of ${path} failed: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
   const notRun = stop?.remaining.length ?? 0;
   if (done > 0 || targets.length > 1) { notify(s, "info", resolveSummary(flow, done, skipped, notRun)); }
   if (stop) {

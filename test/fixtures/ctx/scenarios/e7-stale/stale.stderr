@@ -1,0 +1,1 @@
+{"schema":"ctx.error.v1","exit_code":6,"error":{"code":"stale","message":"resolve: wiki/concepts/rate-limits.md changed on the server since you reviewed it","advice":[],"retryable":false,"details":{"path":"wiki/concepts/rate-limits.md","expected_sha":"a8f6897201450db5da7dc1ef07acb171871935db","server_sha":"01b362712e2758053a8ef8362e2f23b411a6702f"}}}

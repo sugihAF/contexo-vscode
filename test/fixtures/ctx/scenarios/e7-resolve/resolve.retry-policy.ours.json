@@ -1,0 +1,10 @@
+{
+  "schema": "ctx.resolve.v1",
+  "path": "wiki/concepts/retry-policy.md",
+  "strategy": "ours",
+  "previous_state": "conflict",
+  "state": "modified",
+  "base_sha": "94b52c8f9ade15c44e6750dfa93ff59529f19ec5",
+  "file_written": false,
+  "warnings": []
+}

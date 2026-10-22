@@ -1,0 +1,9 @@
+{
+  "rules": [
+    {"match":["status","--json"],"unless":["--offline"],"stdoutFile":"../mixed/status.json"},
+    {"match":["status","--offline"],"stdoutFile":"../mixed-offline/status.json"},
+    {"match":["push"],"stdoutFile":"push.json"},
+    {"match":["pull"],"stdoutFile":"../e7-ready/pull.json"},
+    {"match":["resolve","wiki/concepts/rate-limits.md","--ours"],"stdoutFile":"../e7-resolve/resolve.rate-limits.ours.json"}
+  ]
+}

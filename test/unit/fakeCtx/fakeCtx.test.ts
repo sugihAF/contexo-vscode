@@ -130,6 +130,14 @@ function frontmatter(text: string): Record<string, string> {
   return out;
 }
 
+/** Copies a tree of files and directories (not fs.cpSync: Windows non-ASCII paths, D4). */
+function copyTree(src: string, dest: string): void {
+  fs.mkdirSync(dest, { recursive: true });
+  for (const e of fs.readdirSync(src, { withFileTypes: true })) {
+    if (e.isDirectory()) { copyTree(path.join(src, e.name), path.join(dest, e.name)); } else { fs.copyFileSync(path.join(src, e.name), path.join(dest, e.name)); }
+  }
+}
+
 function filesUnder(dir: string): string[] {
   const out: string[] = [];
   for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -502,7 +510,7 @@ describe("baseline workspaces", () => {
 
   it("prepare-test-workspaces copies the workspaces, replaces the previous copy and drops calls.jsonl", () => {
     const from = tempDir("ws src");
-    fs.cpSync(WORKSPACES_DIR, from, { recursive: true });
+    copyTree(WORKSPACES_DIR, from);
     fs.writeFileSync(path.join(from, "basic", ".fake-ctx", "calls.jsonl"), '{"argv":[]}\n');
     const out = path.join(tempDir("ws out"), "workspaces");
     fs.mkdirSync(path.join(out, "stale"), { recursive: true });
@@ -515,6 +523,30 @@ describe("baseline workspaces", () => {
     assert.ok(fs.existsSync(path.join(out, "multi", "multi.code-workspace")));
     assert.deepEqual(pageFiles(path.join(out, "basic")), pageFiles(basic));
     assert.ok(fs.existsSync(path.join(from, "basic", ".fake-ctx", "calls.jsonl")), "the source is never mutated");
+  });
+
+  // D4 (WP-2.I, L25): on windows-latest (Node 22.23) fs.cpSync into 'C:\Users\RUNNER~1\...\contexo ws src é-…'
+  // left basic/.fake-ctx missing. Node 22's cpSync copies directories natively (cpSyncCopyDir, std::filesystem),
+  // which mis-converts non-ASCII paths on Windows; a readdir/mkdir/copyFile walk goes through libuv's UTF-16 path.
+  it("workspace copies never go through fs.cpSync (Windows non-ASCII paths, D4)", () => {
+    const CP_SYNC = ["cp", "Sync"].join("");
+    for (const rel of [["scripts", "prepare-test-workspaces.mjs"], ["test", "unit", "fakeCtx", "fakeCtx.test.ts"]]) {
+      const text = fs.readFileSync(path.join(REPO_ROOT, ...rel), "utf8");
+      assert.ok(!new RegExp(`\\b${CP_SYNC}\\(`).test(text), `${rel.join("/")} must not call fs.${CP_SYNC}`);
+    }
+  });
+
+  it("prepare-test-workspaces copies dot dirs into a short-name, non-ASCII, spaced destination (D4 path shape)", () => {
+    const out = path.join(tempDir("ws out"), "RUNNER~1", "Temp é dir", "workspaces");
+    const script = path.join(REPO_ROOT, "scripts", "prepare-test-workspaces.mjs");
+    const r = spawnSync(process.execPath, [script, "--out", out], { encoding: "utf8" });
+    assert.equal(r.status, 0, r.stderr);
+    for (const ws of ["basic", path.join("multi", "alpha"), path.join("multi", "beta")]) {
+      assert.deepEqual(filesUnder(path.join(out, ws)).map((f) => path.relative(out, f)).sort(),
+        filesUnder(path.join(WORKSPACES_DIR, ws)).filter((f) => path.basename(f) !== "calls.jsonl").map((f) => path.relative(WORKSPACES_DIR, f)).sort(),
+        `${ws}: every file, .fake-ctx and .contexo included`);
+    }
+    assert.ok(fs.existsSync(path.join(out, "basic", ".fake-ctx", "current")));
   });
 });
 

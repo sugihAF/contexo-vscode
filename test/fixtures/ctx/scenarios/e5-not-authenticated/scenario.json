@@ -1,0 +1,6 @@
+{
+  "rules": [
+    {"match":["status","--json"],"stdoutFile":"status.json"},
+    {"match":["status","--offline"],"stdoutFile":"status.json"}
+  ]
+}

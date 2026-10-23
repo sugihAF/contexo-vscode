@@ -314,11 +314,15 @@ describe("WP-1.11 tree model (E30)", () => {
       assert.equal(treeBadge([]), undefined);
     });
 
-    it("message is shown only for notLoggedIn; pages render except in the ctx/extension blocking states", () => {
+    it("message is shown only for notLoggedIn with a non-empty tree (WP-6H.1); pages render except in the ctx/extension blocking states", () => {
+      const roots = one(loadStatusDoc("mixed"));
+      assert.ok(roots.length > 0);
       assert.equal(NOT_LOGGED_IN_MESSAGE, "Not logged in: showing local pages only");
-      assert.equal(treeMessage("notLoggedIn"), NOT_LOGGED_IN_MESSAGE);
+      assert.equal(treeMessage("notLoggedIn", roots), NOT_LOGGED_IN_MESSAGE);
+      assert.equal(treeMessage("notLoggedIn", []), undefined, "an empty tree leaves the viewsWelcome visible");
       for (const s of ["loading", "ready", "ctxMissing", "ctxTooOld", "extensionTooOld", "noRepositories", "untrusted"] as const) {
-        assert.equal(treeMessage(s), undefined, s);
+        assert.equal(treeMessage(s, roots), undefined, s);
+        assert.equal(treeMessage(s, []), undefined, s);
       }
       for (const s of ["loading", "ready", "notLoggedIn"] as const) { assert.equal(rendersPages(s), true, s); }
       for (const s of ["ctxMissing", "ctxTooOld", "extensionTooOld", "noRepositories", "untrusted"] as const) {

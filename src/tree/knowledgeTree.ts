@@ -202,10 +202,11 @@ export class KnowledgeTreeBinding implements vscode.Disposable {
   private onStatus(r: IRepository): void {
     const entry = this.entries.get(r);
     if (!entry || this.disposed) { return; }
+    const changed = treeSignature(r.status) !== entry.signature;
+    if (changed) { this.rebuild(entry); }
+    // After the rebuild: the message depends on whether the tree is empty.
     this.updateView();
-    if (treeSignature(r.status) === entry.signature) { return; }
-    this.rebuild(entry);
-    if (this.rendering) {
+    if (changed && this.rendering) {
       this.fire(this.entries.size > 1 ? entry.node : undefined, `status of ${entry.root}`);
     }
   }
@@ -223,6 +224,7 @@ export class KnowledgeTreeBinding implements vscode.Disposable {
     if (showSessions === this.showSessions) { return; }
     this.showSessions = showSessions;
     for (const entry of this.entries.values()) { this.rebuild(entry); }
+    this.updateView();
     if (this.rendering) { this.fire(undefined, "tree.showSessions"); }
   }
 
@@ -235,7 +237,7 @@ export class KnowledgeTreeBinding implements vscode.Disposable {
     const badge = this.rendering ? treeBadge([...this.entries.values()].map((e) => e.repo.status)) : undefined;
     const current = this.view.badge;
     if (current?.value !== badge?.value || current?.tooltip !== badge?.tooltip) { this.view.badge = badge; }
-    const message = treeMessage(this.s.model.state);
+    const message = treeMessage(this.s.model.state, this.children(undefined));
     if (this.view.message !== message) { this.view.message = message; }
   }
 

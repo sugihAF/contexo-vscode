@@ -1,8 +1,8 @@
 source_repo=/Users/sugih/Codes/Contexo (github.com/sugihAF/Contexo)
 source_ref=mvp/integration
-source_commit=2d527b296fc4f77a8e2bb3d9a7a2748c89e3f204
+source_commit=ee9cae5481cccbc7b43acd9c7382accac2af48be
 source_path=internal/syncops/contract/testdata/v1
-vendored_by=WP-0.I (2026-10-21; source_commit moved 2026-10-22 to the test-only head 2d527b2, fixture bytes unchanged)
+vendored_by=WP-0.I (2026-10-21; source_commit moved 2026-10-22 to the test-only head 2d527b2, and 2026-10-23 by WP-4.I to the wave-4 head ee9cae5 (was 2d527b2); fixture bytes unchanged)
 command=mkdir -p test/fixtures/contract/v1 && git -C /Users/sugih/Codes/Contexo archive mvp/integration internal/syncops/contract/testdata/v1 | tar -x --strip-components=5 -C test/fixtures/contract/v1
 refresh=re-run the command from the contexo-vscode repo root, then rewrite source_commit with `git -C /Users/sugih/Codes/Contexo rev-parse mvp/integration`
 note=The TS hash check (WP-1.7, E32) ignores this SOURCE file and manifest.json itself.

@@ -162,7 +162,7 @@ const TABLE = {
   sha_not_found: () => refreshToast("That page version was not found on the server; refreshing the status."),
   // D4: never ctx's own message or advice here, which may mention --no-distill.
   distill_required: () => ({
-    message: "Agent sessions have not been distilled yet. Share these pages through your agent so the reasoning trail is kept.",
+    message: "Agent sessions have not been distilled yet. Share these pages through your agent so the decision record is kept.",
     actions: [], severity: "warning", refresh: false, distillModal: true,
   }),
   not_resolvable: (err) => {

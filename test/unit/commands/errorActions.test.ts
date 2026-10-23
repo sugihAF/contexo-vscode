@@ -256,6 +256,8 @@ describe("errorActions (src/commands/errorActions.ts)", () => {
     const p = errorActions(ctxError("distill_required", { details: { pages: ["wiki/concepts/auth-flow.md"], sessions: [], agent_prompt: "Distill the session" } }));
     assert.equal(p.distillModal, true);
     assert.deepEqual(p.actions, []);
+    assert.match(p.message, /so the decision record is kept/);
+    assert.doesNotMatch(p.message, /reasoning/i);
     for (const code of ERROR_CODES.filter((c) => c !== "distill_required")) {
       assert.notEqual(errorActions(ctxError(code)).distillModal, true, code);
     }

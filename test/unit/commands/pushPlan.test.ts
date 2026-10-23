@@ -1,7 +1,7 @@
 // pushPlan / pushSelectedPlan (src/commands/sync.ts, WP-1.13): which pages a push sends.
 // Pure functions over StatusDoc / PageEntry; sync.ts itself loads over the vscode stub.
 import * as assert from "node:assert/strict";
-import { PUSHABLE_STATES, pushPlan, pushSelectedPlan } from "../../../src/commands/sync";
+import { PUSHABLE_STATES, distillMessage, pushPlan, pushSelectedPlan } from "../../../src/commands/sync";
 import { PAGE_STATES, type PageEntry, type PageState, type StatusDoc } from "../../../src/contract/types";
 import { loadStatusDoc } from "../../helpers/fixtures";
 
@@ -63,5 +63,11 @@ describe("pushPlan / pushSelectedPlan (src/commands/sync.ts)", () => {
       const pushable = state === "modified" || state === "new";
       assert.deepEqual(pushSelectedPlan([page("a.md", state)]), pushable ? ["a.md"] : [], `state ${state}`);
     }
+  });
+
+  it("distillMessage (the D4 modal) asks to keep the decision record (L22 wording)", () => {
+    assert.equal(distillMessage(2),
+      "2 agent session(s) have not been distilled yet. Share these pages through your agent so the decision record is kept.");
+    assert.doesNotMatch(distillMessage(1), /reasoning/i);
   });
 });

@@ -14,7 +14,7 @@ import * as terminal from "../../src/terminal";
 import type { TestApi } from "../../src/testApi";
 import type { ConfirmOptions, Prompts } from "../../src/ui/prompts";
 import { activateExtension } from "../helpers/activate";
-import { FAKE_BINARY_PATH, FAKE_VERSION_DOC, FakeCtxCli } from "../helpers/fakeCtxCli";
+import { FAKE_BINARY_PATH, FAKE_VERSION_DOC, FakeCtxCli, exitingTerminalInvocation } from "../helpers/fakeCtxCli";
 import { fakeModel, type FakeModel } from "../helpers/fakeModel";
 import { fakeRepository, type FakeRepository } from "../helpers/fakeRepository";
 import { waitFor } from "../helpers/waitFor";
@@ -137,7 +137,8 @@ describe("e6 status bar and session commands", () => {
     api = await activateExtension();
     opened = [];
     openSub = vscode.window.onDidOpenTerminal((t) => { opened.push(t); });
-    cli = new FakeCtxCli();
+    // A console program on win32 (WP-4.4): there the default's Electron binary never reports its exit.
+    cli = new FakeCtxCli().setResult("terminalInvocation", exitingTerminalInvocation(0));
     root = vscode.workspace.workspaceFolders![0]!.uri.fsPath;
     repo = fakeRepository({ root, status: "e6-ready" });
     model = fakeModel({ repositories: [repo] });
@@ -163,9 +164,10 @@ describe("e6 status bar and session commands", () => {
       const created = await waitFor(() => terminalsNamed(terminal.TERMINAL_NAME)[0], TERMINAL_WAIT);
       assert.equal(terminalsNamed(terminal.TERMINAL_NAME).length, 1, "one Contexo terminal");
       const options = created.creationOptions as vscode.TerminalOptions;
-      assert.equal(options.shellPath, process.execPath, "ctx itself is the terminal process");
-      assert.deepEqual(options.shellArgs, ["-e", "process.exit(0)"]);
-      assert.equal(options.env?.ELECTRON_RUN_AS_NODE, "1");
+      const expected = exitingTerminalInvocation(0);
+      assert.equal(options.shellPath, expected.shellPath, "ctx itself is the terminal process");
+      assert.deepEqual(options.shellArgs, expected.shellArgs);
+      assert.deepEqual(options.env, expected.env);
       assert.equal(vscode.Uri.file(String(options.cwd)).fsPath, vscode.Uri.file(root).fsPath, "cwd is the repository root");
       assert.ok(
         prompts.messages("info").includes("Contexo: log in in the terminal; ctx opens your browser."),
@@ -189,7 +191,7 @@ describe("e6 status bar and session commands", () => {
       );
     });
 
-    it("after the terminal process exits (the fake returns node -e process.exit(0)), fakeModel.refreshAll({remote:true}) is called", async () => {
+    it("after the terminal process exits (the fake's process exits with 0), fakeModel.refreshAll({remote:true}) is called", async () => {
       assert.deepEqual(model.refreshAllCalls, [], "precondition: no refresh yet");
       await vscode.commands.executeCommand("contexo.login");
       await waitFor(() => model.refreshAllCalls.length > 0, TERMINAL_WAIT);
@@ -209,9 +211,7 @@ describe("e6 status bar and session commands", () => {
     });
 
     it("runCtxInTerminal returns the exit code, and undefined after the timeout (still refreshing)", async () => {
-      cli.enqueue("terminalInvocation",
-        { shellPath: process.execPath, shellArgs: ["-e", "process.exit(3)"], env: { ELECTRON_RUN_AS_NODE: "1" } },
-        { shellPath: process.execPath, shellArgs: ["-e", "setTimeout(() => undefined, 60000)"], env: { ELECTRON_RUN_AS_NODE: "1" } });
+      cli.enqueue("terminalInvocation", exitingTerminalInvocation(3), exitingTerminalInvocation(0, { afterMs: 60_000 }));
       const order: string[] = [];
       const exited = await terminal.runCtxInTerminal(api.services, root, ["status"], {
         pollMs: 20, timeoutMs: 10000, beforeRefresh: async () => { order.push("beforeRefresh"); },

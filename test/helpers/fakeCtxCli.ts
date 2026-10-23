@@ -13,6 +13,8 @@
 //      unless the constructor says otherwise), terminalInvocation -> node -e process.exit(0)
 //      with ELECTRON_RUN_AS_NODE=1, dispose -> nothing; show/push/pull/resolve reject with
 //      CtxError.extension('contract_mismatch', 'FakeCtxCli: no scripted result for <method>').
+// A host test whose terminal must exit scripts terminalInvocation with
+// exitingTerminalInvocation(): on win32 the default's process never reports its exit.
 import type { CancellationToken, Disposable, Event } from "vscode";
 import {
   CtxError,
@@ -38,6 +40,27 @@ export const FAKE_VERSION_DOC: VersionDoc = structuredClone(BUILTIN_VERSION_DOC)
 
 /** The binary path the default `ok` BinaryState reports. */
 export const FAKE_BINARY_PATH = "/fake/bin/ctx";
+
+/**
+ * A terminal invocation (no shell) of a console program that exits with `code`, about
+ * `afterMs` ms after it starts when given (WP-4.4). On win32 it is cmd.exe (ComSpec): VS Code
+ * 1.143 on Windows (node-pty 1.2 ConPTY) never reports the pid or the exit of a GUI-subsystem
+ * process such as the Electron binary process.execPath names, while console programs (cmd.exe,
+ * node.exe, ctx.exe) report both. Elsewhere it is that Electron binary running as node.
+ */
+export function exitingTerminalInvocation(
+  code: number,
+  o: { afterMs?: number; platform?: NodeJS.Platform; env?: NodeJS.ProcessEnv } = {},
+): TerminalInvocation {
+  if ((o.platform ?? process.platform) === "win32") {
+    const comSpec = (o.env ?? process.env).ComSpec ?? "C:\\Windows\\System32\\cmd.exe";
+    // ping -n N waits about N-1 seconds; cmd.exe has no sleep.
+    const command = o.afterMs === undefined ? `exit ${code}` : `ping -n ${Math.ceil(o.afterMs / 1000) + 1} 127.0.0.1 >nul & exit ${code}`;
+    return { shellPath: comSpec, shellArgs: ["/d", "/c", command] };
+  }
+  const script = o.afterMs === undefined ? `process.exit(${code})` : `setTimeout(() => process.exit(${code}), ${o.afterMs})`;
+  return { shellPath: process.execPath, shellArgs: ["-e", script], env: { ELECTRON_RUN_AS_NODE: "1" } };
+}
 
 /** What each ICtxCli method resolves (or returns) with. */
 export interface FakeCtxCliResults {

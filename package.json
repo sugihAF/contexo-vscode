@@ -2,20 +2,46 @@
   "name": "contexo",
   "publisher": "contexo",
   "displayName": "Contexo",
-  "description": "Source Control and knowledge tree for Contexo knowledge bases, driven by the ctx CLI.",
-  "version": "0.0.1",
+  "description": "Official Contexo (contexo.live) extension for the ctx CLI: your team knowledge base in Source Control, with push, pull and conflict resolution.",
+  "version": "0.2.0",
   "preview": true,
+  "pricing": "Free",
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://github.com/sugihAF/contexo-vscode.git"
   },
+  "homepage": "https://contexo.live/vscode/",
+  "bugs": {
+    "url": "https://github.com/sugihAF/contexo-vscode/issues"
+  },
+  "qna": false,
   "engines": {
     "vscode": "^1.100.0",
     "node": ">=22"
   },
   "main": "./dist/extension.js",
   "icon": "media/icon.png",
+  "galleryBanner": {
+    "color": "#0f0c0a",
+    "theme": "dark"
+  },
+  "categories": [
+    "SCM Providers",
+    "AI"
+  ],
+  "keywords": [
+    "contexo",
+    "ctx",
+    "knowledge base",
+    "team knowledge",
+    "source control",
+    "scm",
+    "sync",
+    "wiki",
+    "ai agents",
+    "mcp"
+  ],
   "extensionKind": [
     "workspace"
   ],

@@ -464,7 +464,8 @@ describe("real ctx conformance (WP-3.1)", function () {
   //   (listing sha + fetched content), so offline status keeps P a conflict and MCP `resolved`
   //   survives an agent restart. Suspected Go: internal/syncops/push.go (pushBatchAll/pushSkip
   //   write no sidecar), internal/mcp/merge.go (briefSHAs only in memory).
-  it.skip("GFR-1 D2: a push conflict found from the listing writes no sidecar, so offline status shows modified", async () => {
+  //   Fixed by WP-4.1 (E10 as extended by L28); un-skipped by WP-4.I (L34).
+  it("GFR-1 D2: a push conflict found from the listing writes a push sidecar, so offline status keeps it a conflict", async () => {
     const c = await confCase("gfr-1-d2");
     const name = c.name;
     const p = writePage(c.a, { type: "concept", slug: slugOf(name, "p"), body: "Base." });
@@ -752,7 +753,8 @@ async function firstBrief(u: ConfUser): Promise<string> {
   });
 }
 
-describe("Go fix requests for WP-4.1 (re-verified WP-2.I deviations)", function () {
+// GFR-2..6 were fixed by WP-4.1 and un-skipped by WP-4.I (L34); the Repro notes record the old defect.
+describe("Go fix requests fixed by WP-4.1 (re-verified WP-2.I deviations)", function () {
   this.timeout(120000);
 
   // GFR-2 (= WP-2.I D2 MCP side + D3 'server moved again' wording; lead re-test (a)). Repro: the
@@ -761,7 +763,7 @@ describe("Go fix requests for WP-4.1 (re-verified WP-2.I deviations)", function 
   // 'server now' sha is unchanged and whose STEPS say 'If the server moved again meanwhile';
   // only a second resolved call pushes. Clause: D13 (resolved=[paths] has --ours semantics),
   // E10. Suspected Go: internal/mcp/merge.go briefSHAs (in-process only), internal/mcp/tools.go.
-  it.skip("GFR-2 D2: ctx_push resolved=[P] after an agent restart re-briefs although the server did not move", async () => {
+  it("GFR-2 D2: ctx_push resolved=[P] after an agent restart pushes at once when the server did not move", async () => {
     const { c, p, merged } = await mergeCase("gfr-2-restart");
     await firstBrief(c.a);
     writePage(c.a, { type: "concept", slug: slugOf(c.name, "p"), body: merged });
@@ -776,7 +778,7 @@ describe("Go fix requests for WP-4.1 (re-verified WP-2.I deviations)", function 
   // GFR-3 (WP-2.I D3 / lead re-test (c)). Repro: the setup; ctx_push {no_distill} -> the reply
   // starts 'Pushed 0 page(s)' above <MERGE_REQUIRED> although nothing was pushed. Suspected Go:
   // internal/mcp/tools.go (the 'Pushed %d page(s)' head line is added before the brief).
-  it.skip("GFR-3 D3: a ctx_push that only returns a merge brief does not print 'Pushed 0 page(s)' above it", async () => {
+  it("GFR-3 D3: a ctx_push that only returns a merge brief does not print 'Pushed 0 page(s)' above it", async () => {
     const { c } = await mergeCase("gfr-3-pushed0");
     const brief = await firstBrief(c.a);
     assert.doesNotMatch(brief, /^Pushed 0 page\(s\)/m, brief.split("<MERGE_REQUIRED")[0]);
@@ -786,7 +788,7 @@ describe("Go fix requests for WP-4.1 (re-verified WP-2.I deviations)", function 
   // ctx_push {resolved:[P], no_distill} -> 'Pushed 1 page(s); HEAD=<7>' is printed BEFORE
   // 'Resolved P: kept your version, re-based on server <7>' (the resolve happens first).
   // Suspected Go: internal/mcp/tools.go (lines = head, then notes).
-  it.skip("GFR-4 D3: the 'Resolved P' note comes before the 'Pushed N page(s)' line it led to", async () => {
+  it("GFR-4 D3: the 'Resolved P' note comes before the 'Pushed N page(s)' line it led to", async () => {
     const { c, p, merged } = await mergeCase("gfr-4-order");
     const done = await withMcpSession(agentOf(c.a), async (s) => {
       await s.initialize(AGENT);
@@ -803,7 +805,7 @@ describe("Go fix requests for WP-4.1 (re-verified WP-2.I deviations)", function 
   // GFR-5 (WP-2.I D3). Repro: the setup; ctx_push {no_distill} -> 'ancestor (both diverged from):'
   // shows a 7-hex sha while 'server now:' shows 40-hex (and the resolve note's 're-based on server'
   // is 7-hex). Suspected Go: internal/mcp/merge.go shortMergeSHA, tools.go resolve note.
-  it.skip("GFR-5 D3: the merge brief prints the ancestor and server shas at the same (full) length", async () => {
+  it("GFR-5 D3: the merge brief prints the ancestor and server shas at the same (full) length", async () => {
     const { c } = await mergeCase("gfr-5-sha");
     const brief = await firstBrief(c.a);
     const ancestor = /ancestor \(both diverged from\):\s+(\S+)/.exec(brief)?.[1];
@@ -817,7 +819,7 @@ describe("Go fix requests for WP-4.1 (re-verified WP-2.I deviations)", function 
   // ctx_push {no_distill} -> the brief lists '## Notes' under 'CONFLICTING regions (both sides
   // changed)' although both sides wrote identical text. Suspected Go: internal/mcp/merge.go
   // (sections are compared with the ancestor only, not with each other).
-  it.skip("GFR-6 (b): a section both sides changed to identical text is not reported as conflicting", async () => {
+  it("GFR-6 (b): a section both sides changed to identical text is not reported as conflicting", async () => {
     const { c } = await mergeCase("gfr-6-identical", { aliceNotes: "Bob's notes." });
     const brief = await firstBrief(c.a);
     const conflicting = brief.split("CONFLICTING regions")[1]?.split("---")[0] ?? "";

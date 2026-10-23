@@ -234,9 +234,13 @@ export function treeBadge(statuses: readonly (StatusDoc | undefined)[]): { value
   return value > 0 ? { value, tooltip: `${pending} agent session(s) pending · ${conflicts} conflict(s)` } : undefined;
 }
 
-/** TreeView.message for the extension state. */
-export function treeMessage(state: ExtensionState): string | undefined {
-  return state === "notLoggedIn" ? NOT_LOGGED_IN_MESSAGE : undefined;
+/**
+ * TreeView.message for the extension state and the tree's top-level nodes. VS Code shows a
+ * view's viewsWelcome content only while the tree is empty and the message is unset, so an
+ * empty tree gets no message: notLoggedIn then shows its Log In welcome (WP-6H.1).
+ */
+export function treeMessage(state: ExtensionState, roots: readonly TreeNode[]): string | undefined {
+  return state === "notLoggedIn" && roots.length > 0 ? NOT_LOGGED_IN_MESSAGE : undefined;
 }
 
 /** False in the states whose viewsWelcome entry must show (the tree then has no children). */

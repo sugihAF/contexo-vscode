@@ -47,7 +47,6 @@ import { FakeCtxCli } from "../helpers/fakeCtxCli";
 import { fakeModel } from "../helpers/fakeModel";
 import { fakeRepository, type FakeRepository } from "../helpers/fakeRepository";
 import { loadStatusDoc, scenarioDir, scenarioOutput } from "../helpers/fixtures";
-import { waitFor } from "../helpers/waitFor";
 
 const SYNC_MODEL = "wiki/analyses/sync-model.md";
 const AUTH_FLOW = "wiki/concepts/auth-flow.md";
@@ -280,6 +279,32 @@ function bulkStatus(n: number): StatusDoc {
   return doc;
 }
 
+/**
+ * Resolves once reached() holds for doc: checked now, then again on every
+ * onDidChangeTextDocument of doc (content and dirty-state changes both fire it). Rejects if
+ * doc closes first, i.e. it is not the document the edit went to. No timer: an edit that
+ * applyEdit resolved true for has already been synced to doc, so this normally resolves at
+ * once; mocha's timeout is the only backstop.
+ */
+function documentState(doc: vscode.TextDocument, reached: () => boolean, what: string): Promise<void> {
+  return new Promise<void>((resolve, reject) => {
+    const subscriptions: vscode.Disposable[] = [];
+    const settle = (err?: Error): void => {
+      for (const s of subscriptions.splice(0)) { s.dispose(); }
+      if (err) { reject(err); } else { resolve(); }
+    };
+    const check = (): void => { if (reached()) { settle(); } };
+    subscriptions.push(
+      vscode.workspace.onDidChangeTextDocument((e) => { if (e.document === doc) { check(); } }),
+      vscode.workspace.onDidCloseTextDocument((d) => {
+        if (d === doc) { settle(new Error(`${what}: ${doc.uri.fsPath} closed first (a stale TextDocument)`)); }
+      }),
+    );
+    if (doc.isClosed) { settle(new Error(`${what}: ${doc.uri.fsPath} is closed (a stale TextDocument)`)); return; }
+    check();
+  });
+}
+
 /** No prompt anywhere offers to bypass distillation (D4). */
 function assertNoDistillBypass(rec: Recorder): void {
   for (const call of rec.prompted()) {
@@ -376,18 +401,31 @@ describe("e7 sync commands (WP-1.13)", () => {
     await vscode.commands.executeCommand(command, states[0], states);
   }
 
+  /**
+   * Show uri in an editor and return that editor's own TextDocument (WP-4.4).
+   *
+   * Never the document workspace.openTextDocument(uri) returns: it answers from the extension
+   * host's cache, which can still hold a document whose model the renderer is disposing (its
+   * last editor just closed: e7-stale's diff, then the previous test's closeActiveEditor).
+   * Showing that document opens a NEW model for the uri, the WorkspaceEdit (applied by uri)
+   * lands there, and the cached document closes unchanged: 'rate-limits.md is dirty' could
+   * never come true (the D5 flake, which c8edea2's bounded wait could not fix).
+   */
+  async function showPage(uri: vscode.Uri): Promise<vscode.TextDocument> {
+    const doc = (await vscode.window.showTextDocument(uri)).document;
+    assert.equal(doc.isClosed, false, `the editor of ${uri.fsPath} shows an open document`);
+    return doc;
+  }
+
   /** Open <root>/.contexo/<relPath> in an editor and append UNSAVED_MARKER without saving. */
   async function dirtyPage(h: Harness, relPath: string): Promise<vscode.TextDocument> {
     const uri = h.repo.fileUri(relPath);
     touched.push({ uri, original: fs.readFileSync(uri.fsPath) });
-    const doc = await vscode.workspace.openTextDocument(uri);
-    await vscode.window.showTextDocument(doc);
+    const doc = await showPage(uri);
     const edit = new vscode.WorkspaceEdit();
     edit.insert(uri, doc.positionAt(doc.getText().length), UNSAVED_MARKER);
     assert.equal(await vscode.workspace.applyEdit(edit), true, "the edit applies");
-    // D5 (WP-2.I, L25): applyEdit can resolve before the extension host sees the dirty flag
-    // (macOS CI flake), so wait for it instead of asserting it once.
-    await waitFor(() => doc.isDirty && doc.getText().endsWith(UNSAVED_MARKER), { timeoutMs: 5000, message: `${relPath} is dirty` });
+    await documentState(doc, () => doc.isDirty && doc.getText().endsWith(UNSAVED_MARKER), `${relPath} is dirty`);
     return doc;
   }
 
@@ -407,17 +445,20 @@ describe("e7 sync commands (WP-1.13)", () => {
       // cached TextDocument would then be older than the disk, and the next test's save
       // (or edit) of the same page fails with a 'file is newer' conflict.
       const original = t.original.toString("utf8");
-      const doc = await vscode.workspace.openTextDocument(t.uri);
+      const doc = await showPage(t.uri);
       if (doc.getText() !== original) {
         const edit = new vscode.WorkspaceEdit();
         edit.replace(t.uri, new vscode.Range(doc.positionAt(0), doc.positionAt(doc.getText().length)), original);
         assert.equal(await vscode.workspace.applyEdit(edit), true, `restore ${t.uri.fsPath}`);
+        await documentState(doc, () => doc.isDirty && doc.getText() === original, `${t.uri.fsPath} holds the original text`);
       }
       if (doc.isDirty) { assert.equal(await doc.save(), true, `save ${t.uri.fsPath}`); }
-      await vscode.window.showTextDocument(doc);
       await vscode.commands.executeCommand("workbench.action.closeActiveEditor");
       assert.ok(fs.readFileSync(t.uri.fsPath).equals(t.original), `${t.uri.fsPath} is restored on disk`);
     }
+    // No editor outlives its test: e.g. e7-stale's re-opened Base <-> Local diff of
+    // rate-limits.md would otherwise stay open into the dirty-guard tests and the next suite.
+    await vscode.commands.executeCommand("workbench.action.closeAllEditors");
     await api.hooks.resetServices();
   });
 

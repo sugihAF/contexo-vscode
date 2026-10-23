@@ -23,7 +23,7 @@ export const SHOW_CHANGES_LABEL = "Show Changes";
 
 /** The D4 modal text for n un-distilled sessions. */
 export function distillMessage(n: number): string {
-  return `${n} agent session(s) have not been distilled yet. Share these pages through your agent so the reasoning trail is kept.`;
+  return `${n} agent session(s) have not been distilled yet. Share these pages through your agent so the decision record is kept.`;
 }
 
 /** The relPaths in state modified or new, in status order (pages are sorted by path). */

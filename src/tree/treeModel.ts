@@ -131,7 +131,7 @@ function tooltipFields(e: PageEntry): TooltipField[] {
 
 function pendingTooltip(count: number, blocksPush: boolean): string {
   const text = `${count} agent session(s) have not been shared yet. Sharing them through your agent ` +
-    "distills each session's reasoning trail into the knowledge base (concept and analysis pages), " +
+    "distills each session into the knowledge base as a decision record (concept and analysis pages), " +
     "so teammates see why a page changed, not only what changed. Click to copy a prompt for your agent.";
   return blocksPush ? `${text} ${PUSH_BLOCKED_SENTENCE}` : text;
 }

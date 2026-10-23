@@ -176,11 +176,11 @@ describe("WP-1.11 tree model (E30)", () => {
       assert.equal(blocked.kind, "pending");
       assert.equal(PUSH_BLOCKED_SENTENCE, "Push is blocked until these sessions are shared through your agent.");
       assert.ok(blocked.tooltip.includes(PUSH_BLOCKED_SENTENCE));
-      assert.match(blocked.tooltip, /reasoning trail/i);
+      assert.match(blocked.tooltip, /decision record/i);
       assert.equal(pendingItem(blocked).tooltip, blocked.tooltip);
       const free = one(loadStatusDoc("mixed"))[0] as PendingNode;
       assert.ok(!free.tooltip.includes(PUSH_BLOCKED_SENTENCE));
-      assert.match(free.tooltip, /reasoning trail/i);
+      assert.match(free.tooltip, /decision record/i);
     });
 
     it("treeSignature is equal for identical docs and differs when one tag changes", () => {

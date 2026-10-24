@@ -105,7 +105,8 @@ export function presentStatusBar(state: ExtensionState, statuses: StatusDoc[], b
   const offline = statuses.find((st) => OFFLINE_ERROR_CODES.has(st.remote.error?.code ?? ""))?.remote.error;
   if (offline) {
     return {
-      text: "$(cloud-offline) Contexo",
+      // No VS Code registers a cloud-offline codicon (it rendered as a blank gap, WP-6H.3).
+      text: "$(debug-disconnect) Contexo: offline",
       tooltip: offline.message,
       command: { command: COMMAND_IDS.showLog, title: "Show Log" },
     };

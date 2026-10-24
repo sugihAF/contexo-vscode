@@ -24,7 +24,7 @@ function withRemoteError(code: ErrorBody["code"], message: string): StatusDoc {
 
 const WARNING_BG = "statusBarItem.warningBackground";
 const LOGIN_TEXT = "$(account) Contexo: Log in";
-const OFFLINE_TEXT = "$(cloud-offline) Contexo";
+const OFFLINE_TEXT = "$(debug-disconnect) Contexo: offline";
 const READY_TEXT = "$(cloud) Contexo";
 
 /** The command's arguments with Uris as strings. */
@@ -191,7 +191,7 @@ describe("presentStatusBar (the Contexo status bar item)", () => {
     }
   });
 
-  it("network: $(cloud-offline) Contexo, contexo.showLog, tooltip = the error message", () => {
+  it("network: $(debug-disconnect) Contexo: offline, contexo.showLog, tooltip = the error message", () => {
     const st = status("e6-network-error");
     const p = presentStatusBar("ready", [st], false);
     assert.equal(p.text, OFFLINE_TEXT);
@@ -202,7 +202,7 @@ describe("presentStatusBar (the Contexo status bar item)", () => {
     assert.equal(p.tooltip, "GET https://api.example.test/v1/repos/r_test/pages: dial tcp: lookup api.example.test: no such host");
   });
 
-  it("server_error and rate_limited: $(cloud-offline) Contexo", () => {
+  it("server_error and rate_limited: $(debug-disconnect) Contexo: offline", () => {
     for (const code of ["server_error", "rate_limited"] as const) {
       const p = presentStatusBar("ready", [withRemoteError(code, `${code} happened`)], false);
       assert.equal(p.text, OFFLINE_TEXT, code);

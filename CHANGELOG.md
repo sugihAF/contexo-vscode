@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.1 (preview)
+
+Still requires **ctx 0.7.0 or later** (contract v1); no change to how the extension talks to ctx.
+
+- **Contexo: Install ctx** now opens the ctx install instructions (checksum-verified binaries from GitHub Releases) in your browser. The extension no longer runs an install script in a terminal; run **Contexo: Refresh** after installing ctx.
+- The extension description and the README are reworded, and the homepage, the "Read the docs" link and the README's install and documentation links now point to GitHub.
+- A privacy statement, PRIVACY.md in the repository, says what the extension and ctx send; the README's Security and privacy section links it.
+
 ## 0.2.0 (preview)
 
 First public release. Requires **ctx 0.7.0 or later** (contract v1).

@@ -2,7 +2,7 @@
 
 > **Preview.** This is an early release. Commands, views and settings may change between releases.
 
-The official [Contexo](https://contexo.live/vscode/) extension for the `ctx` CLI. Contexo is GitHub for AI agent knowledge, scoped per project: the decisions, rejected alternatives and dead-ends that you and your agents work out become pages in the project's `.contexo/` knowledge base, and the whole team syncs them through a Contexo server.
+The [Contexo](https://github.com/sugihAF/Contexo#readme) extension for the `ctx` CLI. Contexo is GitHub for AI agent knowledge, scoped per project: the decisions, rejected alternatives and dead-ends that you and your agents work out become pages in the project's `.contexo/` knowledge base, and the whole team syncs them through a Contexo server.
 
 This extension puts that knowledge base inside VS Code. Changed, new, incoming and conflicting pages appear in the Source Control view, every page is listed in a Knowledge view, and you push, pull and resolve conflicts without leaving the editor. Everything goes through `ctx`, the same CLI your agents use, so the editor, the terminal and your agents always agree on each page's state.
 
@@ -26,15 +26,13 @@ This extension puts that knowledge base inside VS Code. Changed, new, incoming a
 
 ## Getting started (about 60 seconds)
 
-1. Install ctx, or run **Contexo: Install ctx** from the Command Palette, which shows this command and runs it in a terminal once you confirm:
-   - macOS and Linux: `curl -fsSL https://raw.githubusercontent.com/sugihAF/Contexo/main/scripts/install.sh | sh`
-   - Windows (PowerShell): `iwr -useb https://raw.githubusercontent.com/sugihAF/Contexo/main/scripts/install.ps1 | iex`
+1. Install ctx by following the [ctx install instructions](https://github.com/sugihAF/Contexo#install), which use checksum-verified binaries from GitHub Releases. **Contexo: Install ctx** in the Command Palette opens the same page; run **Contexo: Refresh** once ctx is installed.
 2. Open your project folder and trust it.
 3. Run `ctx init` in the folder, or **Contexo: Initialize Contexo**.
 4. Run `ctx auth login`, or **Contexo: Log In**.
 5. Open the Source Control view (Ctrl+Shift+G, Cmd+Shift+G on macOS) and the Contexo view in the Activity Bar.
 
-The [VS Code guide](https://docs.contexo.live/guides/vscode/) walks through the first run, how the extension finds ctx, remote windows and troubleshooting.
+The sections below cover how the extension finds ctx, remote windows and troubleshooting; the [Contexo README](https://github.com/sugihAF/Contexo#readme) covers ctx itself.
 
 ## What you see
 
@@ -92,7 +90,7 @@ Both pass the server version you looked at (`--if-server-sha`). If a teammate pu
 | Contexo: Open in Dashboard | Opens the project, or the selected page, in the Contexo web dashboard. Unavailable when the project has no dashboard URL. | Command Palette, Source Control title bar, Source Control page menu, Knowledge view item menu |
 | Contexo: Log In | Runs `ctx auth login` in a terminal. In a remote window it adds `--no-browser`, so ctx prints a link and asks you to paste the token. | Command Palette, Source Control title bar |
 | Contexo: Initialize Contexo | Runs `ctx init` in a terminal for a workspace folder that has no Contexo project yet. | Command Palette |
-| Contexo: Install ctx | Shows the official install command and, only after you confirm, runs it in a terminal. | Command Palette |
+| Contexo: Install ctx | Opens the ctx install instructions in your browser. | Command Palette |
 | Contexo: Update ctx | Runs `ctx update` in a terminal, then finds ctx again. | Command Palette |
 | Contexo: Share via Your Agent | Copies a prompt for your agent (Claude Code, Cursor, Codex) to push your pending pages through its Contexo MCP server, which distills the pending sessions first. | Command Palette, Knowledge view item menu |
 | Contexo: Open Changes | Opens the diff for a page: last synced version to local for Changes and New, server to local for Incoming and Conflicts. | Source Control page menu |
@@ -145,9 +143,11 @@ This preview covers sync for a single knowledge base per folder. Not yet include
 
 - **Workspace Trust is required.** In Restricted Mode VS Code does not run the extension at all.
 - **ctx does all the reading and writing.** The extension never reads your credentials, the project configuration or `.contexo/.sync`, never parses pages, and never writes under `.contexo/`. It only watches `.contexo/` for file changes so it can ask ctx for a fresh status.
-- **ctx runs without a shell.** The extension starts `ctx` as a child process with an argument array and no shell, and removes `CONTEXO_DISTILL_DISABLE` from its environment, so a variable set in your shell cannot silently skip the agent-session check. Login, init and update run in a VS Code terminal you can see; **Install ctx** runs the install script only after you confirm.
+- **ctx runs without a shell.** The extension starts `ctx` as a child process with an argument array and no shell, and removes `CONTEXO_DISTILL_DISABLE` from its environment, so a variable set in your shell cannot silently skip the agent-session check. Login, init and update run in a VS Code terminal you can see; **Install ctx** only opens the install instructions in your browser.
 - **No telemetry.** The extension collects nothing and makes no network requests of its own; only `ctx` talks to your Contexo server, as it does on the command line.
 - **The server sees which client pushed.** ctx identifies itself to your Contexo server as `contexo-vscode/<extension version>` (the `X-Contexo-Client` header), so the project's activity shows pushes made from VS Code.
+
+The [privacy statement](https://github.com/sugihAF/contexo-vscode/blob/HEAD/PRIVACY.md) has the details.
 
 ## Remote development
 
@@ -156,7 +156,7 @@ Contexo runs where your files are: on the remote machine in Remote-SSH, WSL, Dev
 ## Support
 
 - Report a bug or ask for a feature: [GitHub issues](https://github.com/sugihAF/contexo-vscode/issues). Include the output of **Contexo: Show Log** and of `ctx version`.
-- Product page: [contexo.live/vscode](https://contexo.live/vscode/). Documentation: [docs.contexo.live/guides/vscode](https://docs.contexo.live/guides/vscode/).
+- Documentation: this README for the extension, and the [Contexo README](https://github.com/sugihAF/Contexo#readme) for ctx and the Contexo server.
 
 ## License
 

@@ -4,8 +4,8 @@
 //
 // Commands run through vscode.commands.executeCommand reach the esbuild bundle; a seam of
 // src/commands/session.ts (sessionSeams) changes only the tsc copy this file imports, so the
-// seam tests call that copy's handlers directly. installCtx never answers "Run in Terminal"
-// through executeCommand: the bundle would run the real install script.
+// seam tests call that copy's handlers directly. installCtx (WP-6H.4) only opens the install
+// instructions, so it runs through the bundle.
 import * as assert from "node:assert/strict";
 import * as vscode from "vscode";
 import type { BinaryState } from "../../src/cli/types";
@@ -19,9 +19,8 @@ import { fakeModel, type FakeModel } from "../helpers/fakeModel";
 import { fakeRepository, type FakeRepository } from "../helpers/fakeRepository";
 import { waitFor } from "../helpers/waitFor";
 
-const UNIX_INSTALL = "curl -fsSL https://raw.githubusercontent.com/sugihAF/Contexo/main/scripts/install.sh | sh";
-const WIN32_INSTALL = "iwr -useb https://raw.githubusercontent.com/sugihAF/Contexo/main/scripts/install.ps1 | iex";
-const INSTALL_DOCS = "https://docs.contexo.live/start/install/";
+const INSTALL_DOCS = "https://github.com/sugihAF/Contexo#install";
+const INSTALL_OPENED = "Contexo: the ctx install instructions are open in your browser. After installing ctx, run Contexo: Refresh.";
 const DEFAULT_PROMPT = "Push my pending Contexo changes with the ctx_push tool. Distill the pending session into a source page first when ctx_push asks you to.";
 const COPIED = "Prompt copied. Paste it into your agent chat (Claude Code, Cursor, Codex).";
 const NOTICE_PREFIX = "Contexo is using ctx ";
@@ -260,64 +259,30 @@ describe("e6 status bar and session commands", () => {
       assert.equal(api.hooks.statusBarSnapshot!().items[0]?.id, "contexo.status");
     });
 
-    it("installCtx creates no terminal unless Run in Terminal is chosen", async () => {
-      assert.equal(session.INSTALL_COMMANDS.unix, UNIX_INSTALL);
-      assert.equal(session.INSTALL_COMMANDS.win32, WIN32_INSTALL);
-      assert.equal(session.installCommandFor("win32"), WIN32_INSTALL);
-      for (const p of ["darwin", "linux", "freebsd"] as const) { assert.equal(session.installCommandFor(p), UNIX_INSTALL, p); }
-      const command = session.installCommandFor(process.platform);
+    it("installCtx opens the install instructions in the browser: no confirm, no terminal, no shell, no ctx", async () => {
+      assert.equal(session.INSTALL_DOCS_URL, INSTALL_DOCS);
+      assert.equal(session.INSTALL_OPENED_MESSAGE, INSTALL_OPENED);
       const settings = spyExecuteCommand((id) => id === "workbench.action.openSettings");
-      prompts.confirmAnswer = () => false;
+      prompts.confirmAnswer = () => true;
       prompts.infoAnswer = () => undefined;
 
       await vscode.commands.executeCommand("contexo.installCtx");
 
-      const confirms = prompts.callsOf("confirm");
-      assert.equal(confirms.length, 1);
-      const [message, options] = confirms[0] as [string, ConfirmOptions];
-      assert.equal(message, "Install the Contexo CLI (ctx)?");
-      assert.equal(options.modal, true);
-      assert.equal(options.confirmLabel, "Run in Terminal");
-      assert.ok(options.detail?.includes(`\n\n${command}\n\n`), `detail names the verbatim command: ${options.detail}`);
-      const hint = prompts.callsOf("info").find((a) => a[0] === `Install ctx by running: ${command}`);
-      assert.deepEqual(hint, [`Install ctx by running: ${command}`, "Open install docs", "Locate ctx…"]);
-      assert.deepEqual(opened, [], "no terminal");
-      assert.deepEqual(prompts.opened(), []);
-
-      prompts.infoAnswer = (m) => (m.startsWith("Install ctx by running: ") ? "Open install docs" : undefined);
-      await vscode.commands.executeCommand("contexo.installCtx");
       assert.deepEqual(prompts.opened(), [INSTALL_DOCS]);
-      assert.deepEqual(opened, [], "still no terminal");
+      assert.deepEqual(prompts.callsOf("info"), [[INSTALL_OPENED, "Locate ctx…"]]);
+      assert.deepEqual(prompts.callsOf("confirm"), [], "no modal confirm");
+      assert.deepEqual(settings.filter((c) => c[0] === "workbench.action.openSettings"), []);
 
-      prompts.infoAnswer = (m) => (m.startsWith("Install ctx by running: ") ? "Locate ctx…" : undefined);
+      prompts.infoAnswer = (m) => (m === INSTALL_OPENED ? "Locate ctx…" : undefined);
       await vscode.commands.executeCommand("contexo.installCtx");
+      assert.deepEqual(prompts.opened(), [INSTALL_DOCS, INSTALL_DOCS]);
       assert.deepEqual(settings.filter((c) => c[0] === "workbench.action.openSettings"), [["workbench.action.openSettings", "contexo.path"]]);
-      assert.deepEqual(opened, [], "still no terminal");
-      assert.equal(prompts.callsOf("confirm").length, 3);
+
+      // A terminal would have opened by now; give a late one a moment to show up.
+      await new Promise((r) => setTimeout(r, 500));
+      assert.deepEqual(opened, [], "no terminal");
       assert.deepEqual(cli.callsOf("terminalInvocation"), [], "installing never runs ctx");
-    });
-
-    it("installCtx runs the install command in one shell terminal only after Run in Terminal, then rediscovers ctx when it closes", async () => {
-      const original = session.sessionSeams.installCommand;
-      session.sessionSeams.installCommand = () => "echo contexo-install-test";
-      undo.push(() => { session.sessionSeams.installCommand = original; });
-      assert.equal(session.sessionSeams.installCommand(process.platform), "echo contexo-install-test", "the tsc copy's seam is overridden");
-      // Safety belt: confirm only ever answers yes for the harmless test command.
-      prompts.confirmAnswer = (_m, o) => o.detail?.includes("\n\necho contexo-install-test\n\n") === true;
-
-      await session.installCtx(api.services);
-
-      assert.equal(prompts.callsOf("confirm").length, 1);
-      const shells = await waitFor(() => { const t = terminalsNamed("Contexo: install ctx"); return t.length > 0 ? t : undefined; }, TERMINAL_WAIT);
-      assert.equal(shells.length, 1);
-      assert.equal(opened.length, 1, "exactly one terminal");
-      const options = shells[0]!.creationOptions as vscode.TerminalOptions;
-      assert.equal(options.shellPath, undefined, "the default shell");
-      assert.deepEqual(cli.callsOf("rediscover"), [], "no rediscover before the terminal closes");
-
-      shells[0]!.dispose();
-      await waitFor(() => cli.callsOf("rediscover").length >= 1, TERMINAL_WAIT);
-      assert.deepEqual(cli.callsOf("terminalInvocation"), []);
+      assert.deepEqual(cli.callsOf("rediscover"), []);
     });
 
     it('shareViaAgent({agentPrompt:"X"}) writes X to env.clipboard; with no argument it writes the default prompt', async () => {

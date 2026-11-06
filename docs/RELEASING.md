@@ -15,7 +15,7 @@ Every step that publishes, pushes, tags or changes a registry is done by a perso
 
 1. **ctx is released.** The ctx release the extension needs (v0.7.0 for 0.2.0) is tagged and marked latest on GitHub, so `ctx update` and the install scripts deliver it.
 2. **Hosted runs that core.** The hosted Contexo server runs the release-candidate or final core (it advertises `pages.at`, `push.expect_absent` and `write.path_sha`).
-3. **Docs and landing are deployed**, so the listing's homepage https://contexo.live/vscode/ and the README's https://docs.contexo.live/guides/vscode/ resolve before anyone sees the listing.
+3. **The listing's links resolve.** The homepage and the welcome view's "Read the docs" link are https://github.com/sugihAF/contexo-vscode#readme, the README links the ctx install instructions at https://github.com/sugihAF/Contexo#install and the privacy statement at https://github.com/sugihAF/contexo-vscode/blob/HEAD/PRIVACY.md, so both repositories must be public. The package names no contexo.live URL and makes no "official" claim.
 4. **The repository is public and `main` is pushed.** vsce rewrites the README's relative images to `https://github.com/sugihAF/contexo-vscode/raw/HEAD/<path>`, so the screenshots render on the listing only once the repository is public and contains `media/screenshots/`.
 5. **Publish the same VSIX** to Open VSX first, then to the Marketplace (see below). Both registries get the identical file whose sha256 was recorded at build time.
 6. **Tag and release on GitHub:** tag `v0.2.0` on the commit the VSIX was built from, and attach the `.vsix` and its `.sha256` to the GitHub release.
@@ -40,7 +40,7 @@ npx --no-install vsce ls --no-dependencies
 ```
 
 - `vsce package` runs `vscode:prepublish` (the production esbuild bundle) first. `npm run package` does the same and writes `dist/contexo-<version>.vsix`, which `npm run check:vsix` checks.
-- `vsce ls --no-dependencies` must list only `package.json`, `README.md`, `CHANGELOG.md`, `LICENSE`, `dist/extension.js` and the `media/` files that `package.json` references (`.vscodeignore` keeps `src/`, `test/`, `scripts/`, `docs/`, source maps and `media/screenshots/` out). The VSIX must stay under 2 MB.
+- `vsce ls --no-dependencies` must list only `package.json`, `README.md`, `CHANGELOG.md`, `LICENSE`, `dist/extension.js` and the `media/` files that `package.json` references (`.vscodeignore` keeps `src/`, `test/`, `scripts/`, `docs/`, `PRIVACY.md`, source maps and `media/screenshots/` out). The VSIX must stay under 2 MB.
 - Make the file read-only (`chmod 0444 "$OUT"`) and publish exactly this file everywhere. Never rebuild between registries.
 
 ## Open VSX

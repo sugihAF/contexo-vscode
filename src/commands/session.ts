@@ -1,6 +1,7 @@
 // Session commands (WP-1.12): log in, initialize, install and update ctx, share via your
 // agent, and the E37 notice when ctx's version changes. Login, init and update run ctx in a
-// terminal (src/terminal.ts); the extension never reads or writes credentials itself.
+// terminal (src/terminal.ts); install only opens the install instructions (WP-6H.4). The
+// extension never reads or writes credentials itself.
 import * as vscode from "vscode";
 import type { BinaryState, ICtxCli } from "../cli/types";
 import type { VersionDoc } from "../contract/types";
@@ -12,36 +13,21 @@ import type { ShareViaAgentArgs } from "./ids";
 export const DEFAULT_AGENT_PROMPT =
   "Push my pending Contexo changes with the ctx_push tool. Distill the pending session into a source page first when ctx_push asks you to.";
 export const SHARE_COPIED_MESSAGE = "Prompt copied. Paste it into your agent chat (Claude Code, Cursor, Codex).";
-export const INSTALL_DOCS_URL = "https://docs.contexo.live/start/install/";
+/** The ctx install instructions (checksum-verified binaries from GitHub Releases). */
+export const INSTALL_DOCS_URL = "https://github.com/sugihAF/Contexo#install";
+export const INSTALL_OPENED_MESSAGE =
+  "Contexo: the ctx install instructions are open in your browser. After installing ctx, run Contexo: Refresh.";
 /** globalState key: the ctx version key the E37 notice was last shown for. */
 export const LAST_CTX_VERSION_KEY = "contexo.lastCtxVersion";
-
-/** The official install one-liners, verbatim from the Contexo README. */
-export const INSTALL_COMMANDS = {
-  unix: "curl -fsSL https://raw.githubusercontent.com/sugihAF/Contexo/main/scripts/install.sh | sh",
-  win32: "iwr -useb https://raw.githubusercontent.com/sugihAF/Contexo/main/scripts/install.ps1 | iex",
-} as const;
-
-export function installCommandFor(platform: NodeJS.Platform): string {
-  return platform === "win32" ? INSTALL_COMMANDS.win32 : INSTALL_COMMANDS.unix;
-}
 
 /** Environment seams, read at call time; tests replace members and restore them. */
 export const sessionSeams = {
   remoteName: (): string | undefined => vscode.env.remoteName,
-  platform: (): NodeJS.Platform => process.platform,
-  installCommand: (platform: NodeJS.Platform): string => installCommandFor(platform),
 };
 
 const NO_FOLDER_MESSAGE = "Contexo: open a folder first.";
-const INSTALL_TERMINAL_NAME = "Contexo: install ctx";
-const OPEN_DOCS = "Open install docs";
 const LOCATE_CTX = "Locate ctx…";
 const LEARN_MORE = "Learn more";
-
-function errorMessage(err: unknown): string {
-  return err instanceof Error ? err.message : String(err);
-}
 
 /** The repository root the argument resolves to, else the first workspace folder. */
 export function targetRoot(s: Services, arg: unknown): string | undefined {
@@ -94,36 +80,13 @@ export async function init(s: Services, arg?: unknown): Promise<void> {
 }
 
 /**
- * contexo.installCtx: the official install script, run in a shell terminal only after the
- * user picks "Run in Terminal" in a modal that shows the exact command. ctx is rediscovered
- * when that terminal closes.
+ * contexo.installCtx: opens the ctx install instructions in the browser. It runs nothing;
+ * Contexo: Refresh finds ctx once it is installed.
  */
 export async function installCtx(s: Services): Promise<void> {
-  const cmd = sessionSeams.installCommand(sessionSeams.platform());
-  const run = await s.prompts.confirm("Install the Contexo CLI (ctx)?", {
-    modal: true,
-    confirmLabel: "Run in Terminal",
-    detail: `This runs the official install script in a new terminal:\n\n${cmd}\n\nIt downloads ctx from the latest GitHub release into a user-writable folder.`,
-  });
-  if (run) {
-    // The only shell terminal in the extension: the default shell runs the install one-liner.
-    const terminal = vscode.window.createTerminal({ name: INSTALL_TERMINAL_NAME });
-    const closed = vscode.window.onDidCloseTerminal((t) => {
-      if (t !== terminal) { return; }
-      closed.dispose();
-      s.cli.rediscover().catch((err: unknown) => {
-        s.log.warn(`rediscover after installing ctx failed: ${errorMessage(err)}`);
-      });
-    });
-    s.context.subscriptions.push(closed);
-    terminal.show();
-    terminal.sendText(cmd, true);
-    return;
-  }
-  const pick = await s.prompts.info(`Install ctx by running: ${cmd}`, OPEN_DOCS, LOCATE_CTX);
-  if (pick === OPEN_DOCS) {
-    await s.prompts.openExternal(vscode.Uri.parse(INSTALL_DOCS_URL));
-  } else if (pick === LOCATE_CTX) {
+  await s.prompts.openExternal(vscode.Uri.parse(INSTALL_DOCS_URL));
+  const pick = await s.prompts.info(INSTALL_OPENED_MESSAGE, LOCATE_CTX);
+  if (pick === LOCATE_CTX) {
     await vscode.commands.executeCommand("workbench.action.openSettings", "contexo.path");
   }
 }
